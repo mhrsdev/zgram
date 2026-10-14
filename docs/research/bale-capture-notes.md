@@ -21,3 +21,10 @@ No phone numbers, codes, cookies or tokens are recorded here. Raw HAR / JS bundl
 
 ## Next step
 Saved bundle files (especially `index.*.js` and the chunks that define the API client) are the fastest way to the message definitions; the names `StartPhoneAuth` / `ValidateCode` suggest a service/method-style API whose request and response types are likely defined in those bundles.
+
+## Update (second report, same day)
+- WebSocket handshake advertises `permessage-deflate` (frames may be compressed by the WebSocket layer; a client library must negotiate it). Origin header is `https://web.bale.ai`.
+- Seen: recurring 4-byte frames (probably heartbeat) and a 7-byte inbound frame. Meaning unverified.
+- Composer accepted 4096 and 8192 characters; server delivery of those was not confirmed, so the real limit is still unknown (>= 3000 confirmed).
+- UI actions done on test accounts: reply, edit, heart reaction, delete (local only), small image, small text file. Wire payloads for all of these are still unknown.
+- Still missing and BLOCKING: JS bundles / source maps. Without them there is no way to learn the message schemas. Use `tools/har_extract_js.py` on a HAR exported with content (it keeps only public .js/.map files, never cookies or tokens).
