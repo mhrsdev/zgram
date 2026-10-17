@@ -35,7 +35,7 @@ ndk.dir=$sdk/ndk/$ANDROID_NDK
 PROPS
 
 (cd "$src" && ./gradlew --no-daemon -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g" \
-  :TMessagesProj_AppStandalone:assembleAfatStandalone -Pandroid.injected.build.abi="$abi")
+  :TMessagesProj_AppStandalone:assembleAfatStandalone -Pandroid.injected.build.abi="$abi" -Pandroid.injected.testOnly=false)
 
 apk=$(find "$src/TMessagesProj_AppStandalone/build" -name 'app.apk' -path '*standalone*' | head -n1)
 [ -n "$apk" ] || { echo "no APK produced" >&2; exit 1; }
