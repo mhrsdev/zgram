@@ -1,20 +1,122 @@
 [
   {
+    "test": "account_lifecycle",
+    "status": "PASS",
+    "seconds": 15.3,
+    "detail": ""
+  },
+  {
+    "test": "input_validation",
+    "status": "PASS",
+    "seconds": 14.4,
+    "detail": ""
+  },
+  {
+    "test": "activation_rules",
+    "status": "PASS",
+    "seconds": 14.6,
+    "detail": ""
+  },
+  {
+    "test": "totp_replay_and_lockout",
+    "status": "PASS",
+    "seconds": 14.1,
+    "detail": ""
+  },
+  {
+    "test": "lockout_expires",
+    "status": "PASS",
+    "seconds": 18.8,
+    "detail": ""
+  },
+  {
+    "test": "unknown_user_indistinguishable",
+    "status": "PASS",
+    "seconds": 16.1,
+    "detail": ""
+  },
+  {
+    "test": "recovery",
+    "status": "PASS",
+    "seconds": 16.0,
+    "detail": ""
+  },
+  {
+    "test": "secrets_not_stored_in_clear",
+    "status": "PASS",
+    "seconds": 14.1,
+    "detail": ""
+  },
+  {
+    "test": "scope_and_phone_login_disabled",
+    "status": "PASS",
+    "seconds": 16.0,
+    "detail": ""
+  },
+  {
+    "test": "send_ack_purge_delivery_mark",
+    "status": "PASS",
+    "seconds": 15.6,
+    "detail": ""
+  },
+  {
     "test": "retransmission_idempotent",
     "status": "PASS",
-    "seconds": 26.7,
+    "seconds": 29.3,
     "detail": ""
   },
   {
     "test": "restart_keeps_undelivered",
     "status": "PASS",
-    "seconds": 42.6,
+    "seconds": 31.4,
     "detail": ""
   },
   {
     "test": "ids_never_regress_after_kill9",
     "status": "PASS",
-    "seconds": 30.1,
+    "seconds": 26.5,
+    "detail": ""
+  },
+  {
+    "test": "expiry",
+    "status": "PASS",
+    "seconds": 23.2,
+    "detail": ""
+  },
+  {
+    "test": "queue_caps",
+    "status": "PASS",
+    "seconds": 15.5,
+    "detail": ""
+  },
+  {
+    "test": "group_per_recipient_ack",
+    "status": "PASS",
+    "seconds": 15.9,
+    "detail": ""
+  },
+  {
+    "test": "group_size_limit_50",
+    "status": "PASS",
+    "seconds": 33.3,
+    "detail": ""
+  },
+  {
+    "test": "logout_relogin",
+    "status": "PASS",
+    "seconds": 9.5,
+    "detail": ""
+  },
+  {
+    "test": "no_content_in_logs_or_index",
+    "status": "PASS",
+    "seconds": 26.4,
+    "detail": ""
+  },
+  {
+    "test": "policy",
+    "status": "PASS",
+    "seconds": 13.6,
     "detail": ""
   }
 ]
