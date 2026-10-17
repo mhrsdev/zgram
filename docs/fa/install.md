@@ -15,7 +15,7 @@
 روی یک ماشین **با اینترنت** (مثلاً لپ‌تاپ):
 
 ```sh
-git clone <آدرس این مخزن> zerogram && cd zerogram
+git clone https://github.com/mhrsdev/zgram.git zerogram && cd zerogram
 ./deploy/zerogram/scripts/offline-bundle.sh dist
 ```
 
@@ -30,7 +30,7 @@ gzip -dc ../zerogram-image.tar.gz | docker load
 ## روش ۲ — ساخت روی خود سرور (نیاز به دسترسی NuGet)
 
 ```sh
-git clone <آدرس این مخزن> zerogram && cd zerogram/deploy/zerogram
+git clone https://github.com/mhrsdev/zgram.git zerogram && cd zerogram/deploy/zerogram
 ```
 
 ## راه‌اندازی (هر دو روش)
@@ -40,15 +40,19 @@ git clone <آدرس این مخزن> zerogram && cd zerogram/deploy/zerogram
 nano .env                            # ZEROGRAM_PUBLIC_ADDRESS را به IP/دامنهٔ سرور تغییر دهید
 docker compose up -d                 # (در روش ۲: docker compose up -d --build)
 docker compose ps                    # وضعیت healthy باید ظاهر شود
-./scripts/connect-link.sh            # لینک اتصال برنامه را چاپ می‌کند
 ```
+
+`install.sh` یک **رمز صاحب سرور** تصادفی ۲۴ نویسه‌ای می‌سازد و یک‌بار چاپ می‌کند (در `.env` هم به‌صورت `ZEROGRAM_OWNER_PASSWORD` می‌ماند). مرحلهٔ بعد در برنامه است:
+
+1. برنامه را باز کنید ← «ورود به‌عنوان صاحب سرور» ← IP سرور و رمز صاحب سرور.
+2. برنامه خودکار وصل می‌شود و صفحهٔ «مدیریت سرور» را نشان می‌دهد: **پیام اتصال رمزگذاری‌شده** (آن را به کاربران بدهید) و **توکن ۳۲ رقمی هر گروه**. شرح کامل: [owner-and-groups.md](owner-and-groups.md).
 
 ### نکته‌های مهم
 
 1. **master key را بیرون از سرور هم نگه دارید.** `ZEROGRAM_MASTER_KEY` در `.env` کلید رمزگذاری secretهای TOTP است. با از دست دادنش، کاربران باید با کدهای بازیابی دوباره راه‌اندازی کنند. فایل `.env` را commit نکنید.
 2. کلید RSA سرور در اولین اجرا ساخته می‌شود (`default-private.key` در volume، فقط خوانا برای مالک). کلید نمونه یا اعتبارنامهٔ نمونه‌ای در این پروژه وجود ندارد.
-3. لینک اتصال `zerogram://IP:PORT?key=...` شامل فقط اطلاعات عمومی (آدرس و کلید عمومی) است. آن را به کاربران بدهید یا به‌صورت QR چاپ کنید؛ کاربر آن را در صفحهٔ «سرور» برنامه می‌چسباند.
-4. فایروال: فقط پورت `5222/tcp` را باز کنید. پورت سلامت (`8081`) فقط داخل کانتینر روی 127.0.0.1 گوش می‌دهد.
+3. کاربران IP سرور را نمی‌بینند و تایپ نمی‌کنند: صاحب سرور از برنامه «پیام اتصال» رمزگذاری‌شده را می‌گیرد و به آن‌ها می‌دهد (توضیح صادقانهٔ محدودیتش در [security.md](security.md)). رمز صاحب سرور را فقط خودتان نگه دارید و به کسی ندهید.
+4. فایروال: دو پورت `5222/tcp` (پروتکل پیام‌رسان) و `5223/tcp` (فقط برای اینکه برنامهٔ صاحب سرور کلید **عمومی** سرور را از روی IP بگیرد) باید باز باشند. اگر پورت اول را عوض می‌کنید، پورت دوم باید «پورت اول + ۱» بماند (`ZEROGRAM_BOOTSTRAP_PORT_HOST`). پورت سلامت (`8081`) فقط داخل کانتینر روی 127.0.0.1 گوش می‌دهد.
 5. ساعت سرور باید درست باشد (TOTP به زمان وابسته است): `timedatectl status` و NTP داخلی یا `chrony` با منبع داخلی.
 
 ## بررسی سلامت
@@ -68,6 +72,9 @@ docker compose logs --tail 50 zerogram
 | متغیر | پیش‌فرض | معنی |
 | --- | --- | --- |
 | `ZEROGRAM_PUBLIC_ADDRESS` | — (اجباری) | آدرسی که کلاینت‌ها می‌زنند |
+| `ZEROGRAM_OWNER_PASSWORD` | تصادفی (install.sh) | رمز صاحب سرور، حداقل ۱۲ نویسه. اگر خالی باشد ورود صاحب سرور غیرفعال است |
+| `ZEROGRAM_SERVER_NAME` | Zerogram | نامی که کاربران برای این سرور می‌بینند (نه IP) |
+| `ZEROGRAM_BOOTSTRAP_PORT_HOST` | 5223 | پورت دریافت کلید عمومی برای برنامهٔ صاحب سرور؛ برابر «پورت اصلی + ۱» |
 | `ZEROGRAM_QUEUE_TTL_HOURS` | 168 (۷ روز) | انقضای پیام تحویل‌نشده |
 | `ZEROGRAM_QUEUE_MAX_MESSAGES_PER_USER` | 10000 | سقف تعداد پیام در صف هر گیرنده |
 | `ZEROGRAM_QUEUE_MAX_BYTES_PER_USER` | 67108864 | سقف حجم صف هر گیرنده (۶۴ مگابایت) |

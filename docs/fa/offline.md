@@ -15,7 +15,9 @@
 | DNS-over-HTTPS گوگل / Mozilla، `dns.google`، `apv3.stel.com` | غیرفعال (`onRequestNewServerIpAndPort` خالی، تفکیک نام فقط با resolver سیستم) |
 | Firebase / FCM / Google Play Services / SafetyNet / Play Integrity | نسخهٔ standalone (بدون FCM)، افزونهٔ google-services حذف شد، Billing شروع نمی‌شود |
 | ورود با تلفن، SMS، تأیید ایمیل، reCAPTCHA | سمت سرور `METHOD_DISABLED`؛ جای آن ورود با Authenticator |
-| به‌روزرسانی خودکار برنامه، گزارش خرابی (AppCenter) | غیرفعال در نسخهٔ standalone |
+| به‌روزرسانی خودکار تلگرام، گزارش خرابی (AppCenter) | غیرفعال در نسخهٔ standalone |
+| بررسی به‌روزرسانی زیروگرام (GitHub، مخزن `mhrsdev/zgram`) | **اختیاری و بی‌صدا:** فقط یک درخواست HTTPS به GitHub در پس‌زمینه؛ اگر در دسترس نباشد رد می‌شود و هیچ قابلیتی به آن وابسته نیست ([releases.md](releases.md)) |
+| دریافت کلید عمومی سرور برای ورود صاحب سرور | فقط به IP همان سرور شما (پورت اصلی + ۱) |
 | پیش‌نمایش لینک (`getWebPagePreview`) | سرور آن را رد می‌کند (سرور هیچ درخواست HTTP خروجی ندارد) |
 | CDN / ذخیره‌سازی ابری | سرور فقط دیسک محلی؛ ارسال فایل غیرفعال |
 
