@@ -1,0 +1,14 @@
+[
+  {
+    "test": "totp_replay_and_lockout",
+    "status": "PASS",
+    "seconds": 16.7,
+    "detail": ""
+  },
+  {
+    "test": "scope_and_phone_login_disabled",
+    "status": "PASS",
+    "seconds": 10.7,
+    "detail": ""
+  }
+]

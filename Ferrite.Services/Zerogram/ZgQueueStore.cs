@@ -135,6 +135,17 @@ public sealed class ZgQueueStore
             ("@n", now), ("@x", expires));
     }
 
+    /// <summary>Registers a stored copy that no send path pre-registered (service messages, history copies).</summary>
+    public void TrackIfAbsent(long owner, int msgId, long size, long now, long expires)
+    {
+        using var c = _store.Open();
+        ZgStore.Exec(c, """
+            INSERT OR IGNORE INTO queue(recipient, msg_id, sender, origin_random, sender_msg_id,
+              s_peer_type, s_peer_id, size, created, expires)
+            VALUES(@rcp,@mid,0,0,0,0,0,@sz,@n,@x)
+            """, ("@rcp", owner), ("@mid", msgId), ("@sz", size), ("@n", now), ("@x", expires));
+    }
+
     public void SetSenderMessageId(long sender, long randomId, int senderMsgId)
     {
         using var c = _store.Open();

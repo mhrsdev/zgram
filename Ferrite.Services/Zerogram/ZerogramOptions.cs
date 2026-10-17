@@ -58,6 +58,9 @@ public sealed record ZerogramOptions
             Issuer = read("ZEROGRAM_ISSUER") is { Length: > 0 } i ? i : o.Issuer,
             MasterKeyBase64 = read("ZEROGRAM_MASTER_KEY") is { Length: > 0 } k ? k : null,
             MaxFailedAttempts = Int(read("ZEROGRAM_MAX_FAILED_ATTEMPTS"), o.MaxFailedAttempts),
+            // Accepted clock drift in TOTP steps (default 1). Larger values weaken the 30 s code lifetime.
+            TotpWindowSteps = Int(read("ZEROGRAM_TOTP_WINDOW_STEPS"), o.TotpWindowSteps),
+            LockoutBase = TimeSpan.FromSeconds(Int(read("ZEROGRAM_LOCKOUT_BASE_SECONDS"), (int)o.LockoutBase.TotalSeconds)),
             MaxAttemptsPerIp = Int(read("ZEROGRAM_MAX_ATTEMPTS_PER_IP"), o.MaxAttemptsPerIp),
             MaxRegistrationsPerIp = Int(read("ZEROGRAM_MAX_REGISTRATIONS_PER_IP"), o.MaxRegistrationsPerIp),
             GroupMemberLimit = Int(read("ZEROGRAM_GROUP_MEMBER_LIMIT"), o.GroupMemberLimit),

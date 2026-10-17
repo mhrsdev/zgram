@@ -115,6 +115,7 @@ public class ServerBuilder
         builder.RegisterType<SecretVault>().AsSelf().SingleInstance();
         builder.RegisterType<ZgAccountService>().AsSelf().SingleInstance();
         builder.RegisterType<ZgQueueStore>().AsSelf().SingleInstance();
+        builder.RegisterType<ZgMessageTracker>().As<IMessageTracker>().SingleInstance();
         builder.RegisterType<ZgRetention>().AsSelf().SingleInstance();
         builder.RegisterType<ZgRetentionRuntime>().AsSelf().SingleInstance();
     }
@@ -263,7 +264,7 @@ public class ServerBuilder
             Ephemeral(c), Ephemeral(c)));
         Repository<IUpdatesStateRepository>(c => new UpdatesStateRepository(Durable(c)));
         Repository<IMessageRepository>(c => new MessageRepository(Durable(c),
-            c.Resolve<IUpdatesStateRepository>()));
+            c.Resolve<IUpdatesStateRepository>(), c.Resolve<IMessageTracker>()));
         Repository<IDraftsRepository>(c => new DraftsRepository(Durable(c)));
         Repository<IWebPagesRepository>(c => new WebPagesRepository(Durable(c)));
         Repository<IChannelContentReadsRepository>(c =>

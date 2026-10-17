@@ -8,14 +8,23 @@ using Ferrite.Data.Models;
 
 namespace Ferrite.Data.Repositories;
 
+/// <summary>Observes every message copy written, so the server can account for undelivered ones.</summary>
+public interface IMessageTracker
+{
+    void OnStored(long ownerId, int messageId, int storedBytes);
+}
+
 public class MessageRepository : IMessageRepository
 {
     private readonly IKVStore _store;
     private readonly IUpdatesStateRepository _updatesState;
-    public MessageRepository(IKVStore store, IUpdatesStateRepository updatesState)
+    private readonly IMessageTracker? _tracker;
+    public MessageRepository(IKVStore store, IUpdatesStateRepository updatesState,
+        IMessageTracker? tracker = null)
     {
         _store = store;
         _updatesState = updatesState;
+        _tracker = tracker;
         store.SetSchema(new TableDefinition("ferrite", "messages",
             new KeyDefinition("pk",
                 new DataColumn { Name = "user_id", Type = DataType.Long },
@@ -37,9 +46,12 @@ public class MessageRepository : IMessageRepository
             .Pts(pts)
             .OriginalMessage(message.AsSpan())
             .Build();
-        _store.Put(savedMessage.AsSpan().ToArray(), userId, metadata.PeerType, metadata.PeerId,
-            metadata.Outgoing, MessageIds.GetId(message), pts, metadata.Date);
+        byte[] saved = savedMessage.AsSpan().ToArray();
+        int messageId = MessageIds.GetId(message);
+        _store.Put(saved, userId, metadata.PeerType, metadata.PeerId,
+            metadata.Outgoing, messageId, pts, metadata.Date);
         _updatesState.PutPts(userId, pts);
+        _tracker?.OnStored(userId, messageId, saved.Length);
         return true;
     }
 

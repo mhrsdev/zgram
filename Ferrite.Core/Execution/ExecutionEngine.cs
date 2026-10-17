@@ -137,6 +137,12 @@ public class ExecutionEngine : IExecutionEngine
     private async ValueTask<TLBytes?> InvokeStreamingCore(ITLStreamingObject rpc,
         TLExecutionContext ctx)
     {
+        if (ZerogramScope.IsBlocked(rpc.Constructor))
+        {
+            using var disabled = RpcErrorGenerator.GenerateError(403, "METHOD_DISABLED"u8);
+            return RpcResultGenerator.Generate(disabled, ctx.MessageId);
+        }
+
         var authError = await GetAuthErrorResult(rpc.Constructor, ctx);
         if (authError != null) return authError;
 
@@ -273,6 +279,10 @@ public class ExecutionEngine : IExecutionEngine
             {
                 using var query = RequestUnwrapper.InvokeWithReCaptchaQuery(rpc);
                 return await InvokeFileCore(query, ctx);
+            }
+            if (ZerogramScope.IsBlocked(rpc.Constructor))
+            {
+                return new FileResult(null, RpcErrorGenerator.GenerateError(403, "METHOD_DISABLED"u8));
             }
             if (!_fileFunctions.TryGetValue(new FunctionKey(rpc.Constructor), out var func))
             {

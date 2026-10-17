@@ -78,7 +78,11 @@ public sealed class ZgRetention
         if (stale.Count > 0)
         {
             foreach (var row in stale) await PurgeCopyAsync(row.Recipient, row.MsgId);
-            if (stale[0].SenderMsgId > 0) await PurgeCopyAsync(sender, stale[0].SenderMsgId);
+            if (stale[0].SenderMsgId > 0)
+            {
+                await PurgeCopyAsync(sender, stale[0].SenderMsgId);
+                _queue.Remove(sender, new[] { stale[0].SenderMsgId });
+            }
             _queue.Abort(sender, randomId);
             _queue.BeginSend(sender, randomId, now, (long)_options.QueueTtl.TotalSeconds + 86400);
         }
@@ -117,6 +121,7 @@ public sealed class ZgRetention
         _queue.Complete(gate.Sender, gate.RandomId, senderMsgId, pts, date);
         // The sender's device already holds the message (it learns the id from this very response).
         await PurgeCopyAsync(gate.Sender, senderMsgId);
+        _queue.Remove(gate.Sender, new[] { senderMsgId });
         _copies.DeleteMessageCopies(logicalId);
         await _unitOfWork.SaveAsync();
         Ferrite.Data.Repositories.RocksDBContext.SyncAll();
@@ -144,7 +149,8 @@ public sealed class ZgRetention
     private async Task AdvanceAndNotifyAsync(IReadOnlyList<ZgQueueRow> rows)
     {
         long now = Now;
-        foreach (var group in rows.GroupBy(r => (r.Sender, r.SenderPeerType, r.SenderPeerId)))
+        foreach (var group in rows.Where(r => r.Sender != 0)
+                     .GroupBy(r => (r.Sender, r.SenderPeerType, r.SenderPeerId)))
         {
             int ackedMax = group.Max(r => r.SenderMsgId);
             int? mark = _queue.AdvanceDelivered(group.Key.Sender, group.Key.SenderPeerType,
