@@ -40,6 +40,7 @@ public class FerriteServer : IFerriteServer
     private readonly GroupCallRecordingRuntime _groupCallRecordingRuntime;
     private readonly ScheduledMessageRuntime _scheduledMessages;
     private readonly MessageExpiryRuntime _messageExpiry;
+    private readonly Ferrite.Services.Zerogram.ZgRetentionRuntime _zgRetention;
     private readonly ICallRegistry _callRegistry;
     private readonly CallTerminator _callTerminator;
     private readonly IMTProtoTime _time;
@@ -64,6 +65,7 @@ public class FerriteServer : IFerriteServer
         _groupCallRecordingRuntime = _scope.Resolve<GroupCallRecordingRuntime>();
         _scheduledMessages = _scope.Resolve<ScheduledMessageRuntime>();
         _messageExpiry = _scope.Resolve<MessageExpiryRuntime>();
+        _zgRetention = _scope.Resolve<Ferrite.Services.Zerogram.ZgRetentionRuntime>();
         _callRegistry = _scope.Resolve<ICallRegistry>();
         _callTerminator = _scope.Resolve<CallTerminator>();
         _time = _scope.Resolve<IMTProtoTime>();
@@ -183,6 +185,11 @@ public class FerriteServer : IFerriteServer
                     .StopAsync(CancellationToken.None));
 
                 token.ThrowIfCancellationRequested();
+                await _zgRetention.StartAsync(token);
+                rollback.Add(async () => await _zgRetention
+                    .StopAsync(CancellationToken.None));
+
+                token.ThrowIfCancellationRequested();
                 _socketListener.Bind(endPoint);
             }
             catch
@@ -243,6 +250,7 @@ public class FerriteServer : IFerriteServer
                 _connections.Clear();
 
                 await _messageExpiry.StopAsync(token);
+                await _zgRetention.StopAsync(token);
                 await _scheduledMessages.StopAsync(token);
                 await _secretChatMaintenance.StopAsync(token);
                 await _callMediaRelay.StopAsync();

@@ -66,10 +66,11 @@ public sealed class MessageStore
     }
 
     public async Task<StoredMessageWrite> PutIncomingMessageAsync(long recipientId,
-        TLMessage outgoingMessage, TLPeer from, long logicalId)
+        TLMessage outgoingMessage, TLPeer from, long logicalId, Action<int>? beforeWrite = null)
     {
         var receiverContext = _updatesContextFactory.GetUpdatesContext(null, recipientId);
         int receiverMessageId = await receiverContext.NextMessageId();
+        beforeWrite?.Invoke(receiverMessageId);
         PutMessageCopy(logicalId, recipientId, receiverMessageId);
         using TLMessage incomingMessage = outgoingMessage.AsMessage().Clone()
             .Id(receiverMessageId)
@@ -87,10 +88,11 @@ public sealed class MessageStore
 
     public async Task<StoredMessageWrite> PutIncomingGroupMessageAsync(long participantId,
         long chatId, TLMessage outgoingMessage, long logicalId,
-        bool mentioned = false)
+        bool mentioned = false, Action<int>? beforeWrite = null)
     {
         var receiverContext = _updatesContextFactory.GetUpdatesContext(null, participantId);
         int receiverMessageId = await receiverContext.NextMessageId();
+        beforeWrite?.Invoke(receiverMessageId);
         PutMessageCopy(logicalId, participantId, receiverMessageId);
         using TLMessage incomingMessage = outgoingMessage.AsMessage().Clone()
             .Id(receiverMessageId)

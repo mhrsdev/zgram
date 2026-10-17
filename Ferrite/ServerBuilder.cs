@@ -68,6 +68,7 @@ public class ServerBuilder
     }
     internal static IContainer BuildContainer(FerriteServerOptions options)
     {
+        Ferrite.Data.Counters.CounterEpoch.Initialize(options.DataPath);
         var builder = new ContainerBuilder();
         RegisterPrimitives(builder);
         RegisterServices(builder, options);
@@ -113,6 +114,9 @@ public class ServerBuilder
         builder.RegisterType<ZgStore>().AsSelf().SingleInstance();
         builder.RegisterType<SecretVault>().AsSelf().SingleInstance();
         builder.RegisterType<ZgAccountService>().AsSelf().SingleInstance();
+        builder.RegisterType<ZgQueueStore>().AsSelf().SingleInstance();
+        builder.RegisterType<ZgRetention>().AsSelf().SingleInstance();
+        builder.RegisterType<ZgRetentionRuntime>().AsSelf().SingleInstance();
     }
 
     private static void RegisterPrimitives(ContainerBuilder builder)

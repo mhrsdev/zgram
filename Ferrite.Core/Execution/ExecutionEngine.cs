@@ -89,6 +89,12 @@ public class ExecutionEngine : IExecutionEngine
                 : LayerRequestNormalizer.NormalizeOlderMethod(request, layer);
             request = older ?? request;
 
+            if (ZerogramScope.IsBlocked(request.Constructor))
+            {
+                using var disabled = RpcErrorGenerator.GenerateError(403, "METHOD_DISABLED"u8);
+                return RpcResultGenerator.Generate(disabled, ctx.MessageId);
+            }
+
             var authError = await GetAuthErrorResult(request.Constructor, ctx);
             if (authError != null) return authError;
 

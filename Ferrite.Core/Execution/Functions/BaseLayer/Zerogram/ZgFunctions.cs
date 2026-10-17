@@ -2,8 +2,10 @@
 // Zerogram: RPC entry points of the authenticator-account API (zg.*).
 
 using System.Text;
+using Ferrite.Data.Repositories;
 using Ferrite.Services.Zerogram;
 using Ferrite.TL;
+using Ferrite.TL.baseLayer;
 using Ferrite.TL.baseLayer.zg;
 
 namespace Ferrite.Core.Execution.Functions.BaseLayer.Zerogram;
@@ -137,5 +139,71 @@ public sealed class ZgGetPolicyFunc : ITLFunction
             .SingleDevice(true)
             .Build();
         return ValueTask.FromResult<TLBytes?>(RpcResultGenerator.Generate(policy, ctx.MessageId));
+    }
+}
+
+
+[TLFunction(Constructors.baseLayer_AckMessages)]
+public sealed class ZgAckMessagesFunc : ITLFunction
+{
+    private readonly ZgRetention _retention;
+    private readonly IAuthorizationRepository _authorizations;
+
+    public ZgAckMessagesFunc(ZgRetention retention, IAuthorizationRepository authorizations)
+    {
+        _retention = retention;
+        _authorizations = authorizations;
+    }
+
+    public async ValueTask<TLBytes?> Process(TLBytes q, TLExecutionContext ctx)
+    {
+        using var auth = await _authorizations.GetAuthorizationAsync(ctx.CurrentAuthKeyId);
+        if (auth is not { } info || !info.AsAuthInfo().LoggedIn)
+        {
+            using var denied = RpcErrorGenerator.GenerateError(401, "AUTH_KEY_UNREGISTERED"u8);
+            return RpcResultGenerator.Generate(denied, ctx.MessageId);
+        }
+
+        var request = new AckMessages(q.AsSpan());
+        VectorOfInt vector = request.Ids;
+        var ids = new List<int>(vector.Count);
+        for (int i = 0; i < vector.Count; i++) ids.Add(vector[i]);
+
+        int acked = await _retention.AckAsync(info.AsAuthInfo().UserId, ids);
+        using TLAckResult result = AckResult.Builder().Acked(acked).Build();
+        return RpcResultGenerator.Generate(result, ctx.MessageId);
+    }
+}
+
+[TLFunction(Constructors.baseLayer_GetDeliveryState)]
+public sealed class ZgGetDeliveryStateFunc : ITLFunction
+{
+    private readonly ZgRetention _retention;
+    private readonly IAuthorizationRepository _authorizations;
+
+    public ZgGetDeliveryStateFunc(ZgRetention retention, IAuthorizationRepository authorizations)
+    {
+        _retention = retention;
+        _authorizations = authorizations;
+    }
+
+    public async ValueTask<TLBytes?> Process(TLBytes q, TLExecutionContext ctx)
+    {
+        using var auth = await _authorizations.GetAuthorizationAsync(ctx.CurrentAuthKeyId);
+        if (auth is not { } info || !info.AsAuthInfo().LoggedIn)
+        {
+            using var denied = RpcErrorGenerator.GenerateError(401, "AUTH_KEY_UNREGISTERED"u8);
+            return RpcResultGenerator.Generate(denied, ctx.MessageId);
+        }
+
+        var marks = new Vector();
+        foreach (var (peerType, peerId, maxId) in _retention.Queue.DeliveryMarks(info.AsAuthInfo().UserId))
+        {
+            using TLPeer peer = Ferrite.Services.Users.PeerResolver.BuildPeer((TLPeer.PeerType)peerType, peerId);
+            using TLDeliveryMark mark = DeliveryMark.Builder().Peer(peer.AsSpan()).MaxId(maxId).Build();
+            marks.AppendTLObject(mark.AsSpan());
+        }
+        using TLDeliveryState state = DeliveryState.Builder().Marks(marks).Build();
+        return RpcResultGenerator.Generate(state, ctx.MessageId);
     }
 }

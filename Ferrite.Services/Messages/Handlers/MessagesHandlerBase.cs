@@ -864,9 +864,17 @@ public abstract class MessagesHandlerBase
             return ErrorUpdates(target.Error);
         }
 
-        ShortSentBatch sent = await _send.SendBasicGroupMessageAsync(authKeyId,
-            userId, chatId, target.RelatedUserIds, requestBytes,
-            chatBytes: target.ChatBytes);
+        ShortSentBatch sent;
+        try
+        {
+            sent = await _send.SendBasicGroupMessageAsync(authKeyId,
+                userId, chatId, target.RelatedUserIds, requestBytes,
+                chatBytes: target.ChatBytes);
+        }
+        catch (Zerogram.ZgSendRejectedException rejected)
+        {
+            return ErrorUpdates(rejected.Code);
+        }
         if (afterCommit != null)
         {
             await afterCommit();

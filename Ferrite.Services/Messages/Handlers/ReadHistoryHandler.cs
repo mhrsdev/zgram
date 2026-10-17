@@ -82,20 +82,8 @@ public sealed class ReadHistoryHandler : MessagesHandlerBase
             await _updates.EnqueueUpdate(userId, inboxUpdate);
             await userCtx.SettlePts(userPts, userPts);
 
-            if (peerType == TLPeer.PeerType.PeerUser)
-            {
-                var peerCtx = _updatesContextFactory.GetUpdatesContext(null, peerId);
-                int peerPts = await peerCtx.IncrementPts();
-                using TLPeer selfPeer = new PeerUser(userId);
-                TLUpdate outboxUpdate = UpdateReadHistoryOutbox.Builder()
-                    .Peer(selfPeer.AsSpan())
-                    .MaxId(maxId)
-                    .Pts(peerPts)
-                    .PtsCount(1)
-                    .Build();
-                await _updates.EnqueueUpdate(peerId, outboxUpdate);
-                await peerCtx.SettlePts(peerPts, peerPts);
-            }
+            // Zerogram: no read receipts. The sender's double check means "delivered to the recipient's
+            // device" and is driven by zg.ackMessages, so reading a chat reveals nothing to the peer.
 
             _log.Debug($"👁 ReadHistory user:{userId} peerType:{peerType} peer:{peerId} maxId:{maxId} stillUnread:{stillUnread} pts:{userPts}");
             return AffectedMessages.Builder().Pts(userPts).PtsCount(1).Build();

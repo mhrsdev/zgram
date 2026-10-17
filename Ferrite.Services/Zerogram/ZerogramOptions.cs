@@ -61,7 +61,9 @@ public sealed record ZerogramOptions
             MaxAttemptsPerIp = Int(read("ZEROGRAM_MAX_ATTEMPTS_PER_IP"), o.MaxAttemptsPerIp),
             MaxRegistrationsPerIp = Int(read("ZEROGRAM_MAX_REGISTRATIONS_PER_IP"), o.MaxRegistrationsPerIp),
             GroupMemberLimit = Int(read("ZEROGRAM_GROUP_MEMBER_LIMIT"), o.GroupMemberLimit),
-            QueueTtl = TimeSpan.FromHours(Int(read("ZEROGRAM_QUEUE_TTL_HOURS"), (int)o.QueueTtl.TotalHours)),
+            QueueTtl = read("ZEROGRAM_QUEUE_TTL_SECONDS") is { Length: > 0 } ttlSeconds
+                ? TimeSpan.FromSeconds(Int(ttlSeconds, (int)o.QueueTtl.TotalSeconds))
+                : TimeSpan.FromHours(Int(read("ZEROGRAM_QUEUE_TTL_HOURS"), (int)o.QueueTtl.TotalHours)),
             QueueMaxMessagesPerRecipient = Int(read("ZEROGRAM_QUEUE_MAX_MESSAGES_PER_USER"), o.QueueMaxMessagesPerRecipient),
             QueueMaxBytesPerRecipient = Long(read("ZEROGRAM_QUEUE_MAX_BYTES_PER_USER"), o.QueueMaxBytesPerRecipient),
             QueueMaxTotalBytes = Long(read("ZEROGRAM_QUEUE_MAX_TOTAL_BYTES"), o.QueueMaxTotalBytes),

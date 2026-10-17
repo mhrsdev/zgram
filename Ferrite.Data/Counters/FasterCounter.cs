@@ -12,12 +12,16 @@ public class FasterCounter : IAtomicCounter
     private string _name;
     private long _inc = 1;
     private bool _disposed = false;
+    private readonly long _epoch;
     private readonly ClientSession<string, long, long, long, Empty, IFunctions<string, long, long, long, Empty>> _session;
     
-    public FasterCounter(FasterContext<string, long> context, string name)
+    /// <param name="epochShifted">issued identifiers are shifted by <see cref="CounterEpoch.Offset"/>;
+    /// pass false for values that merely mirror client input (e.g. read markers).</param>
+    public FasterCounter(FasterContext<string, long> context, string name, bool epochShifted = true)
     {
         _context = context;
         _name = name;
+        _epoch = epochShifted ? CounterEpoch.Offset : 0;
         _session = _context.Store.NewSession(new RMWSimpleFunctions<string, long>(
             (a, b) => a + b));
         
@@ -28,7 +32,7 @@ public class FasterCounter : IAtomicCounter
         if (_disposed) throw new ObjectDisposedException(_name);
         long value = 0;
         _session.Read(ref _name, ref value);
-        return ValueTask.FromResult(value);
+        return ValueTask.FromResult(value + _epoch);
     }
 
     public async ValueTask<long> IncrementAndGet()
@@ -36,7 +40,7 @@ public class FasterCounter : IAtomicCounter
         if (_disposed) throw new ObjectDisposedException(_name);
         long value = 0;
         _session.RMW(ref _name, ref _inc, ref value);
-        return value;
+        return value + _epoch;
     }
 
     public async ValueTask<long> IncrementByAndGet(long inc)
@@ -44,7 +48,7 @@ public class FasterCounter : IAtomicCounter
         if (_disposed) throw new ObjectDisposedException(_name);
         long value = 0;
         _session.RMW(ref _name, ref inc, ref value);
-        return value;
+        return value + _epoch;
     }
 
     public ValueTask<long> IncrementTo(long val)
@@ -52,8 +56,8 @@ public class FasterCounter : IAtomicCounter
         if (_disposed) throw new ObjectDisposedException(_name);
         using var session = _context.Store.NewSession(new RMWSimpleFunctions<string, long>(
             (input, oldValue) => input > oldValue ? input : oldValue));
-        session.RMW(_name, val, out var output);
-        return ValueTask.FromResult(output);
+        session.RMW(_name, val - _epoch, out var output);
+        return ValueTask.FromResult(output + _epoch);
     }
 
     class RMWSimpleFunctions<Key, Value> : SimpleFunctions<Key, Value>

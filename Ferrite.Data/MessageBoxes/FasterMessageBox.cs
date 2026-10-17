@@ -59,14 +59,14 @@ public class FasterMessageBox : IMessageBox, IAsyncDisposable
             await _dialogs.Remove($"msg:unread:{_userId}-{peerType}-{peerId}");
         }
         var peerMaxReadCounter = new FasterCounter(_counterContext , 
-            $"msg:max-read:{_userId}-{peerType}-{peerId}");
+            $"msg:max-read:{_userId}-{peerType}-{peerId}", epochShifted: false);
         return (int)await peerMaxReadCounter.IncrementTo(maxId);
     }
 
     public async ValueTask<int> ReadMessagesMaxId(int peerType, long peerId)
     {
         var peerMaxReadCounter = new FasterCounter(_counterContext , 
-            $"msg:max-read:{_userId}-{peerType}-{peerId}");
+            $"msg:max-read:{_userId}-{peerType}-{peerId}", epochShifted: false);
         return (int)await peerMaxReadCounter.Get();
     }
 

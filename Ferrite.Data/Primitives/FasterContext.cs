@@ -61,6 +61,11 @@ public class FasterContext<TKey, TValue> : IAsyncDisposable
         {
             await _checkpointFull;
         }
+        if (IsDurable)
+        {
+            // Zerogram: a clean stop must persist the very last counter increments.
+            _ = await Store.TakeHybridLogCheckpointAsync(CheckpointType.FoldOver);
+        }
         Store.Dispose();
     }
 }

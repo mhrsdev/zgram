@@ -2428,6 +2428,8 @@ zg.registration#b0e28bc4 issuer:string username:string display_name:string otpau
 zg.activated#9fec1e3b recovery_codes:Vector<string> authorization:auth.Authorization = zg.Activated;
 zg.policy#c7220c7c group_member_limit:int queue_ttl_days:int single_device:Bool = zg.Policy;
 zg.ackResult#fdadd943 acked:int = zg.AckResult;
+zg.deliveryMark#097979b8 peer:Peer max_id:int = zg.DeliveryMark;
+zg.deliveryState#e3e0513e marks:Vector<zg.DeliveryMark> = zg.DeliveryState;
 
 ---functions---
 
@@ -3279,3 +3281,4 @@ zg.login#95ceac5e username:string code:string = auth.Authorization;
 zg.recover#6093a2fc username:string recovery_code:string = zg.Registration;
 zg.getPolicy#36d005e7 = zg.Policy;
 zg.ackMessages#84ff4d33 ids:Vector<int> = zg.AckResult;
+zg.getDeliveryState#a65929cc = zg.DeliveryState;

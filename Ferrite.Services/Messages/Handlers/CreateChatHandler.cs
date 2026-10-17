@@ -28,7 +28,8 @@ public sealed class CreateChatHandler : MessagesHandlerBase
         ICounterFactory counterFactory, IdAllocators ids,
         ChatRowStore chatRows, InviteStore invites,
         PrivacyEvaluator privacy, MessageStore messages, SendPipeline send,
-        UpdateFanout fanout, DialogBuilder dialogs, ChatSettingsStore settings)
+        UpdateFanout fanout, DialogBuilder dialogs, ChatSettingsStore settings,
+        Zerogram.ZerogramOptions zerogram)
         : base(unitOfWork, forumTopicsRepository, messagingSettingsRepository, authorizationRepository, channelMessagesRepository, chatParticipantsRepository, chatRepository, messageRepository, userRepository, search, updates, updatesContextFactory, log, upload, photos, counterFactory, ids, chatRows, invites, privacy, messages, send, fanout, dialogs)
     {
         _authorizationRepository = authorizationRepository;
@@ -38,7 +39,10 @@ public sealed class CreateChatHandler : MessagesHandlerBase
         _messageRepository = messageRepository;
 
         _settings = settings;
+        _zerogram = zerogram;
     }
+
+    private readonly Zerogram.ZerogramOptions _zerogram;
 
     [TLFunction(Constructors.layer150_MessagesCreateChat)]
     public async Task<TLInvitedUsers> HandleLayer150(long authKeyId, TLBytes q)
@@ -81,6 +85,10 @@ public sealed class CreateChatHandler : MessagesHandlerBase
             }
 
             participantIds = participantIds.Distinct().ToList();
+            if (participantIds.Count > _zerogram.GroupMemberLimit)
+            {
+                return (TLInvitedUsers)RpcErrorGenerator.GenerateError(400, "USERS_TOO_MUCH"u8);
+            }
             if (participantIds.Count < 2)
             {
                 return (TLInvitedUsers)RpcErrorGenerator.GenerateError(400, "USERS_TOO_FEW"u8);

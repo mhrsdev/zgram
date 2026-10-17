@@ -93,8 +93,16 @@ public sealed class SendMessageHandler : MessagesHandlerBase
                 return ErrorUpdates(target.Error);
             }
 
-            ShortSentBatch sent = await _send.SendPrivateMessageAsync(authKeyId, userId,
-                to.Type, peerId, requestBytes);
+            ShortSentBatch sent;
+            try
+            {
+                sent = await _send.SendPrivateMessageAsync(authKeyId, userId,
+                    to.Type, peerId, requestBytes);
+            }
+            catch (Zerogram.ZgSendRejectedException rejected)
+            {
+                return ErrorUpdates(rejected.Code);
+            }
             await ClearDraftAfterCommit(authKeyId, userId, peerType, peerId,
                 requestBytes);
 

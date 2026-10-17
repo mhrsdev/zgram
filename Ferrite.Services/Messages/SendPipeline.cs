@@ -52,13 +52,15 @@ public sealed class SendPipeline
     private readonly IUpdatesContextFactory _updatesContextFactory;
     private readonly ICounterFactory _counterFactory;
     private readonly MessageExpiryStore _expiry;
+    private readonly Zerogram.ZgRetention _retention;
     private readonly ILogger _log;
 
     public SendPipeline(IUnitOfWork unitOfWork, IChannelMessagesRepository channelMessagesRepository, IChatParticipantsRepository chatParticipantsRepository, IForumTopicsRepository forumTopicsRepository, IMessageInteractionsRepository messageInteractionsRepository, IMessageReactionsRepository messageReactionsRepository, IMessageRepository messageRepository, IUserRepository userRepository, MessageStore messages,
         ISearchEngine search, UpdateFanout fanout,
         IUpdatesContextFactory updatesContextFactory, ICounterFactory counterFactory,
-        MessageExpiryStore expiry, ILogger log)
+        MessageExpiryStore expiry, Zerogram.ZgRetention retention, ILogger log)
     {
+        _retention = retention;
         _channelMessagesRepository = channelMessagesRepository;
         _chatParticipantsRepository = chatParticipantsRepository;
         _forumTopicsRepository = forumTopicsRepository;
@@ -81,44 +83,60 @@ public sealed class SendPipeline
         long userId, TLPeer.PeerType peerType, long peerId, byte[] requestBytes,
         byte[]? media = null, long groupedId = 0)
     {
-        var senderContext = _updatesContextFactory.GetUpdatesContext(authKeyId, userId);
-        int senderMessageId = (int)await senderContext.NextMessageId();
-        int ttlPeriod = await _expiry.ResolveTtlPeriodAsync(userId, peerType, peerId);
-        using TLPeer from = new PeerUser(userId);
-        using TLPeer to = PeerResolver.BuildPeer(peerType, peerId);
         using var request = new TLBytes(requestBytes, 0, requestBytes.Length);
         long randomId = ((MessagesSendMessage)request).RandomId;
-        using TLMessage outgoingMessage = GenerateOutgoingMessage(request, senderMessageId,
-            from, to, UnixNow(), media: media, groupedId: groupedId,
-            ttlPeriod: ttlPeriod);
-
-        int pts = await PutOutgoingAsync(senderContext, userId, outgoingMessage,
-            from, to);
-        TrackExpiry(MessageExpiryBox.Common, userId, outgoingMessage, ttlPeriod);
-        long logicalId = await _messages.CreateMessageCopyAsync(userId, senderMessageId);
-        PendingDelivery? pending = null;
-        await PublishToBoxesAsync(RecipientBox(userId, peerId), async () =>
+        var recipients = peerId == userId ? Array.Empty<long>() : new[] { peerId };
+        Zerogram.ZgSendGate gate = await _retention.BeginSendAsync(userId, randomId,
+            recipients, requestBytes.Length + 512);
+        if (gate.Replay is { } replay)
         {
-            if (peerId != userId)
-            {
-                pending = await PutIncomingAsync(peerId, outgoingMessage, from, to,
-                    logicalId, ttlPeriod);
-            }
-
-            await _unitOfWork.SaveAsync();
-            if (pending != null)
-            {
-                await DeliverAsync(pending.Value);
-            }
-        });
-        await IndexOutgoingAsync(userId, outgoingMessage, from, to);
-        if (pending != null)
-        {
-            await IndexIncomingAsync(pending.Value);
+            return new ShortSentBatch(userId, peerType, peerId, randomId, replay.MsgId,
+                replay.Pts, replay.Date, Array.Empty<byte>());
         }
-        return new ShortSentBatch(userId, peerType, peerId, randomId,
-            senderMessageId, pts, outgoingMessage.AsMessage().Date,
-            outgoingMessage.AsSpan().ToArray());
+
+        try
+        {
+            var senderContext = _updatesContextFactory.GetUpdatesContext(authKeyId, userId);
+            int senderMessageId = (int)await senderContext.NextMessageId();
+            int ttlPeriod = await _expiry.ResolveTtlPeriodAsync(userId, peerType, peerId);
+            using TLPeer from = new PeerUser(userId);
+            using TLPeer to = PeerResolver.BuildPeer(peerType, peerId);
+            using TLMessage outgoingMessage = GenerateOutgoingMessage(request, senderMessageId,
+                from, to, UnixNow(), media: media, groupedId: groupedId,
+                ttlPeriod: ttlPeriod);
+
+            int pts = await PutOutgoingAsync(senderContext, userId, outgoingMessage,
+                from, to);
+            TrackExpiry(MessageExpiryBox.Common, userId, outgoingMessage, ttlPeriod);
+            long logicalId = await _messages.CreateMessageCopyAsync(userId, senderMessageId);
+            PendingDelivery? pending = null;
+            await PublishToBoxesAsync(RecipientBox(userId, peerId), async () =>
+            {
+                if (peerId != userId)
+                {
+                    pending = await PutIncomingAsync(peerId, outgoingMessage, from, to,
+                        logicalId, ttlPeriod,
+                        id => _retention.RegisterCopy(gate, peerId, id, senderMessageId,
+                            (int)peerType, peerId, requestBytes.Length + 128));
+                }
+
+                await _unitOfWork.SaveAsync();
+                Ferrite.Data.Repositories.RocksDBContext.SyncAll();
+                if (pending != null)
+                {
+                    await DeliverAsync(pending.Value);
+                }
+            });
+            int date = outgoingMessage.AsMessage().Date;
+            await _retention.CompleteSendAsync(gate, senderMessageId, pts, date, logicalId);
+            return new ShortSentBatch(userId, peerType, peerId, randomId,
+                senderMessageId, pts, date, outgoingMessage.AsSpan().ToArray());
+        }
+        catch
+        {
+            _retention.AbortSend(gate);
+            throw;
+        }
     }
 
     public async Task<ShortSentBatch> SendBasicGroupMessageAsync(long authKeyId,
@@ -126,54 +144,67 @@ public sealed class SendPipeline
         byte[] requestBytes, byte[]? media = null, long groupedId = 0,
         byte[]? chatBytes = null)
     {
-        var senderContext = _updatesContextFactory.GetUpdatesContext(authKeyId, userId);
-        int senderMessageId = (int)await senderContext.NextMessageId();
-        MentionPlan mentions = ResolveMentions(requestBytes);
-        int ttlPeriod = await _expiry.ResolveTtlPeriodAsync(userId,
-            TLPeer.PeerType.PeerChat, chatId);
-        using TLPeer from = new PeerUser(userId);
-        using TLPeer to = new PeerChat(chatId);
         using var request = new TLBytes(requestBytes, 0, requestBytes.Length);
         long randomId = ((MessagesSendMessage)request).RandomId;
-        using TLMessage outgoingMessage = GenerateOutgoingMessage(request, senderMessageId,
-            from, to, UnixNow(), media: media, groupedId: groupedId,
-            entitiesOverride: mentions.EntitiesBytes, ttlPeriod: ttlPeriod);
-        int senderPts = await PutOutgoingAsync(senderContext, userId,
-            outgoingMessage, from, to);
-        TrackExpiry(MessageExpiryBox.Common, userId, outgoingMessage, ttlPeriod);
-        long logicalId = await _messages.CreateMessageCopyAsync(userId, senderMessageId);
-        var pending = new List<PendingDelivery>();
-
-        foreach (long participantId in participantIds)
+        long[] recipients = participantIds.Where(p => p != userId).ToArray();
+        Zerogram.ZgSendGate gate = await _retention.BeginSendAsync(userId, randomId,
+            recipients, requestBytes.Length + 512);
+        if (gate.Replay is { } replay)
         {
-            if (participantId == userId)
-            {
-                continue;
-            }
-
-            pending.Add(await PutIncomingGroupAsync(participantId, chatId,
-                outgoingMessage, from, logicalId,
-                mentions.UserIds.Contains(participantId), ttlPeriod));
+            return new ShortSentBatch(userId, TLPeer.PeerType.PeerChat, chatId, randomId,
+                replay.MsgId, replay.Pts, replay.Date, Array.Empty<byte>(), chatBytes);
         }
 
-        await PublishToBoxesAsync(pending.Select(d => d.RecipientId).ToArray(), async () =>
+        try
         {
-            await _unitOfWork.SaveAsync();
-            foreach (PendingDelivery delivery in pending)
+            var senderContext = _updatesContextFactory.GetUpdatesContext(authKeyId, userId);
+            int senderMessageId = (int)await senderContext.NextMessageId();
+            MentionPlan mentions = ResolveMentions(requestBytes);
+            int ttlPeriod = await _expiry.ResolveTtlPeriodAsync(userId,
+                TLPeer.PeerType.PeerChat, chatId);
+            using TLPeer from = new PeerUser(userId);
+            using TLPeer to = new PeerChat(chatId);
+            using TLMessage outgoingMessage = GenerateOutgoingMessage(request, senderMessageId,
+                from, to, UnixNow(), media: media, groupedId: groupedId,
+                entitiesOverride: mentions.EntitiesBytes, ttlPeriod: ttlPeriod);
+            int senderPts = await PutOutgoingAsync(senderContext, userId,
+                outgoingMessage, from, to);
+            TrackExpiry(MessageExpiryBox.Common, userId, outgoingMessage, ttlPeriod);
+            long logicalId = await _messages.CreateMessageCopyAsync(userId, senderMessageId);
+            var pending = new List<PendingDelivery>();
+
+            foreach (long participantId in recipients)
             {
-                await DeliverAsync(delivery);
+                long recipient = participantId;
+                pending.Add(await PutIncomingGroupAsync(participantId, chatId,
+                    outgoingMessage, from, logicalId,
+                    mentions.UserIds.Contains(participantId), ttlPeriod,
+                    id => _retention.RegisterCopy(gate, recipient, id, senderMessageId,
+                        (int)TLPeer.PeerType.PeerChat, chatId, requestBytes.Length + 128)));
             }
-        });
-        await IndexOutgoingAsync(userId, outgoingMessage, from, to);
-        foreach (PendingDelivery delivery in pending)
-        {
-            await IndexIncomingAsync(delivery);
+
+            await PublishToBoxesAsync(pending.Select(d => d.RecipientId).ToArray(), async () =>
+            {
+                await _unitOfWork.SaveAsync();
+                Ferrite.Data.Repositories.RocksDBContext.SyncAll();
+                foreach (PendingDelivery delivery in pending)
+                {
+                    await DeliverAsync(delivery);
+                }
+            });
+            int date = outgoingMessage.AsMessage().Date;
+            await _retention.CompleteSendAsync(gate, senderMessageId, senderPts, date, logicalId);
+            _log.Debug($"💬 Group message was sent Sender: {userId} Chat: {chatId} " +
+                       $"Participants: {participantIds.Count} PTS: {senderPts}");
+            return new ShortSentBatch(userId, TLPeer.PeerType.PeerChat, chatId,
+                randomId, senderMessageId, senderPts, date,
+                outgoingMessage.AsSpan().ToArray(), chatBytes);
         }
-        _log.Debug($"💬 Group message was sent Sender: {userId} Chat: {chatId} " +
-                   $"Participants: {participantIds.Count} PTS: {senderPts}");
-        return new ShortSentBatch(userId, TLPeer.PeerType.PeerChat, chatId,
-            randomId, senderMessageId, senderPts, outgoingMessage.AsMessage().Date,
-            outgoingMessage.AsSpan().ToArray(), chatBytes);
+        catch
+        {
+            _retention.AbortSend(gate);
+            throw;
+        }
     }
 
     public async Task<ChannelSentBatch> SendChannelMessageAsync(long userId,
@@ -712,7 +743,11 @@ public sealed class SendPipeline
         return pts;
     }
 
-    private async Task IndexOutgoingAsync(long ownerId, TLMessage outgoingMessage,
+    // Zerogram: message text is never written to a search index; clients search their own history.
+    private Task IndexOutgoingAsync(long ownerId, TLMessage outgoingMessage,
+        TLPeer from, TLPeer to) => Task.CompletedTask;
+
+    private async Task IndexOutgoingLegacyAsync(long ownerId, TLMessage outgoingMessage,
         TLPeer from, TLPeer to)
     {
         await _search.IndexMessage(new MessageSearchModel(
@@ -725,10 +760,10 @@ public sealed class SendPipeline
 
     private async Task<PendingDelivery> PutIncomingAsync(long recipientId,
         TLMessage outgoingMessage, TLPeer from, TLPeer to, long logicalId,
-        int ttlPeriod = 0)
+        int ttlPeriod = 0, Action<int>? beforeWrite = null)
     {
         StoredMessageWrite stored = await _messages.PutIncomingMessageAsync(recipientId,
-            outgoingMessage, from, logicalId);
+            outgoingMessage, from, logicalId, beforeWrite);
         using var incomingMessage = new TLMessage(stored.Bytes, 0, stored.Bytes.Length);
         TrackExpiry(MessageExpiryBox.Common, recipientId, incomingMessage, ttlPeriod);
         var searchModel = new MessageSearchModel(
@@ -742,10 +777,10 @@ public sealed class SendPipeline
 
     private async Task<PendingDelivery> PutIncomingGroupAsync(long participantId,
         long chatId, TLMessage outgoingMessage, TLPeer from, long logicalId,
-        bool mentioned = false, int ttlPeriod = 0)
+        bool mentioned = false, int ttlPeriod = 0, Action<int>? beforeWrite = null)
     {
         StoredMessageWrite stored = await _messages.PutIncomingGroupMessageAsync(
-            participantId, chatId, outgoingMessage, logicalId, mentioned);
+            participantId, chatId, outgoingMessage, logicalId, mentioned, beforeWrite);
         using var incomingMessage = new TLMessage(stored.Bytes, 0, stored.Bytes.Length);
         TrackExpiry(MessageExpiryBox.Common, participantId, incomingMessage,
             ttlPeriod);
@@ -799,10 +834,7 @@ public sealed class SendPipeline
             delivery.MessageBytes, delivery.Pts);
     }
 
-    private async Task IndexIncomingAsync(PendingDelivery delivery)
-    {
-        await _search.IndexMessage(delivery.SearchModel);
-    }
+    private Task IndexIncomingAsync(PendingDelivery delivery) => Task.CompletedTask;
 
     private async Task UpdateForumTopicUnreadStateAsync(long channelId, int topicId,
         long senderId, int messageId)

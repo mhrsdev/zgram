@@ -97,6 +97,8 @@ public class Program
         finally
         {
             await ferriteServer.StopAsync(CancellationToken.None);
+            // Reached only after every store was disposed and checkpointed.
+            Ferrite.Data.Counters.CounterEpoch.MarkCleanShutdown();
         }
     }
 

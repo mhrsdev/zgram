@@ -15,6 +15,7 @@ namespace Ferrite.Services.Handlers.MessageMethods;
 public sealed class AddChatUserHandler : MessagesHandlerBase
 {
     private readonly IChatParticipantsRepository _chatParticipantsRepository;
+    private readonly Zerogram.ZerogramOptions _zerogram;
 
     public AddChatUserHandler(IUnitOfWork unitOfWork, IForumTopicsRepository forumTopicsRepository, IMessagingSettingsRepository messagingSettingsRepository, IAuthorizationRepository authorizationRepository, IChannelMessagesRepository channelMessagesRepository, IChatParticipantsRepository chatParticipantsRepository, IChatRepository chatRepository, IMessageRepository messageRepository, IUserRepository userRepository,ISearchEngine search,
         IUpdatesService updates, IUpdatesContextFactory updatesContextFactory,
@@ -22,10 +23,12 @@ public sealed class AddChatUserHandler : MessagesHandlerBase
         ICounterFactory counterFactory, IdAllocators ids,
         ChatRowStore chatRows, InviteStore invites,
         PrivacyEvaluator privacy, MessageStore messages, SendPipeline send,
-        UpdateFanout fanout, DialogBuilder dialogs)
+        UpdateFanout fanout, DialogBuilder dialogs,
+        Zerogram.ZerogramOptions zerogram)
         : base(unitOfWork, forumTopicsRepository, messagingSettingsRepository, authorizationRepository, channelMessagesRepository, chatParticipantsRepository, chatRepository, messageRepository, userRepository, search, updates, updatesContextFactory, log, upload, photos, counterFactory, ids, chatRows, invites, privacy, messages, send, fanout, dialogs)
     {
         _chatParticipantsRepository = chatParticipantsRepository;
+        _zerogram = zerogram;
 
     }
 
@@ -77,6 +80,10 @@ public sealed class AddChatUserHandler : MessagesHandlerBase
                 }
 
                 long targetId = targetUserId.Value;
+                if (context.ActiveParticipants.Count >= _zerogram.GroupMemberLimit)
+                {
+                    return ErrorInvitedUsers("USERS_TOO_MUCH");
+                }
                 foreach (var participantInfo in context.ActiveParticipants)
                 {
                     if (participantInfo.AsChatParticipantInfo().UserId == targetId)
