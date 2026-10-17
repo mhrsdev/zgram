@@ -29,6 +29,8 @@
     <PackageReference Include="DotNext.IO" Version="6.3.0" />
     <PackageReference Include="DotNext.Unsafe" Version="6.3.0" />
     <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
+    <PackageReference Include="Otp.NET" Version="1.4.0" />
     <PackageReference Include="SkiaSharp" Version="4.148.0" />
     <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="4.148.0" />
     <!-- Linux is the deployment target and the runtime image the integration

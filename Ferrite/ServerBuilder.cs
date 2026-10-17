@@ -29,6 +29,7 @@ using Ferrite.Services.SecretChats.Handlers;
 using Ferrite.Services.Scheduling;
 using Ferrite.Services.Sessions;
 using Ferrite.Services.Stats;
+using Ferrite.Services.Zerogram;
 using Ferrite.TL;
 using Ferrite.TL.Schema;
 using Ferrite.Transport;
@@ -103,6 +104,15 @@ public class ServerBuilder
         container.Resolve<LangPackSeed>().RunAsync()
             .AsTask().GetAwaiter().GetResult();
         return container;
+    }
+
+    private static void RegisterZerogram(ContainerBuilder builder, FerriteServerOptions options)
+    {
+        builder.RegisterInstance(ZerogramOptions.FromEnvironment(
+            Environment.GetEnvironmentVariable, options.DataPath)).SingleInstance();
+        builder.RegisterType<ZgStore>().AsSelf().SingleInstance();
+        builder.RegisterType<SecretVault>().AsSelf().SingleInstance();
+        builder.RegisterType<ZgAccountService>().AsSelf().SingleInstance();
     }
 
     private static void RegisterPrimitives(ContainerBuilder builder)
@@ -483,6 +493,7 @@ public class ServerBuilder
     private static void RegisterServices(ContainerBuilder builder,
         FerriteServerOptions options)
     {
+        RegisterZerogram(builder, options);
         builder.RegisterType<VerificationGateway>()
             .As<IVerificationGateway>().SingleInstance();
         builder.RegisterType<RejectingWebAuthorizationTokenValidator>()

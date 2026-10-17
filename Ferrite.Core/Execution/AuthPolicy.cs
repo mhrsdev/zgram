@@ -10,6 +10,11 @@ internal static class AuthPolicy
 {
     public static readonly FrozenSet<int> UnauthorizedMethods = new[]
     {
+        Constructors.baseLayer_Register,
+        Constructors.baseLayer_Activate,
+        Constructors.baseLayer_Login,
+        Constructors.baseLayer_Recover,
+        Constructors.baseLayer_GetPolicy,
         Constructors.baseLayer_SendCode,
         LegacyConstructors.ResendCode,
         Constructors.baseLayer_CancelCode,

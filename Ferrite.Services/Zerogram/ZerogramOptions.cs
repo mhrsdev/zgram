@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Zerogram: configuration for the authenticator-account and delivery-queue layers.
+
+namespace Ferrite.Services.Zerogram;
+
+public sealed record ZerogramOptions
+{
+    /// <summary>Directory holding zerogram.db and the master key. Defaults to the Ferrite data path.</summary>
+    public string DataPath { get; init; } = "data";
+
+    /// <summary>Label shown in Google Authenticator.</summary>
+    public string Issuer { get; init; } = "Zerogram";
+
+    /// <summary>Base64 AES-256 key that encrypts TOTP secrets. When null a key file is created under DataPath.</summary>
+    public string? MasterKeyBase64 { get; init; }
+
+    public int TotpPeriodSeconds { get; init; } = 30;
+    public int TotpDigits { get; init; } = 6;
+
+    /// <summary>Accepted clock drift in whole TOTP steps on either side of the current one.</summary>
+    public int TotpWindowSteps { get; init; } = 1;
+
+    public int RecoveryCodeCount { get; init; } = 10;
+
+    /// <summary>How long a not-yet-activated registration reserves its username.</summary>
+    public TimeSpan PendingRegistrationTtl { get; init; } = TimeSpan.FromMinutes(30);
+
+    /// <summary>Failed code attempts per username before a lockout starts.</summary>
+    public int MaxFailedAttempts { get; init; } = 5;
+
+    public TimeSpan LockoutBase { get; init; } = TimeSpan.FromMinutes(1);
+    public TimeSpan LockoutMax { get; init; } = TimeSpan.FromHours(1);
+
+    /// <summary>Hard cap on auth attempts (any outcome) per client IP inside <see cref="IpWindow"/>.</summary>
+    public int MaxAttemptsPerIp { get; init; } = 60;
+
+    public TimeSpan IpWindow { get; init; } = TimeSpan.FromMinutes(10);
+
+    public int MaxRegistrationsPerIp { get; init; } = 10;
+    public TimeSpan RegistrationWindow { get; init; } = TimeSpan.FromHours(1);
+
+    public int GroupMemberLimit { get; init; } = 50;
+
+    /// <summary>Undelivered-message queue: expiry, per-recipient and global caps.</summary>
+    public TimeSpan QueueTtl { get; init; } = TimeSpan.FromDays(7);
+    public int QueueMaxMessagesPerRecipient { get; init; } = 10_000;
+    public long QueueMaxBytesPerRecipient { get; init; } = 64L * 1024 * 1024;
+    public long QueueMaxTotalBytes { get; init; } = 4L * 1024 * 1024 * 1024;
+    public TimeSpan QueueSweepInterval { get; init; } = TimeSpan.FromMinutes(5);
+
+    public static ZerogramOptions FromEnvironment(Func<string, string?> read, string dataPath)
+    {
+        static int Int(string? v, int d) => int.TryParse(v, out int x) && x > 0 ? x : d;
+        static long Long(string? v, long d) => long.TryParse(v, out long x) && x > 0 ? x : d;
+        var o = new ZerogramOptions { DataPath = dataPath };
+        return o with
+        {
+            Issuer = read("ZEROGRAM_ISSUER") is { Length: > 0 } i ? i : o.Issuer,
+            MasterKeyBase64 = read("ZEROGRAM_MASTER_KEY") is { Length: > 0 } k ? k : null,
+            MaxFailedAttempts = Int(read("ZEROGRAM_MAX_FAILED_ATTEMPTS"), o.MaxFailedAttempts),
+            MaxAttemptsPerIp = Int(read("ZEROGRAM_MAX_ATTEMPTS_PER_IP"), o.MaxAttemptsPerIp),
+            MaxRegistrationsPerIp = Int(read("ZEROGRAM_MAX_REGISTRATIONS_PER_IP"), o.MaxRegistrationsPerIp),
+            GroupMemberLimit = Int(read("ZEROGRAM_GROUP_MEMBER_LIMIT"), o.GroupMemberLimit),
+            QueueTtl = TimeSpan.FromHours(Int(read("ZEROGRAM_QUEUE_TTL_HOURS"), (int)o.QueueTtl.TotalHours)),
+            QueueMaxMessagesPerRecipient = Int(read("ZEROGRAM_QUEUE_MAX_MESSAGES_PER_USER"), o.QueueMaxMessagesPerRecipient),
+            QueueMaxBytesPerRecipient = Long(read("ZEROGRAM_QUEUE_MAX_BYTES_PER_USER"), o.QueueMaxBytesPerRecipient),
+            QueueMaxTotalBytes = Long(read("ZEROGRAM_QUEUE_MAX_TOTAL_BYTES"), o.QueueMaxTotalBytes),
+            QueueSweepInterval = TimeSpan.FromSeconds(Int(read("ZEROGRAM_QUEUE_SWEEP_SECONDS"), (int)o.QueueSweepInterval.TotalSeconds)),
+        };
+    }
+}

@@ -2423,6 +2423,12 @@ ephemeral.welcomeMessages#104fc872 hash:long messages:Vector<EphemeralMessage> =
 
 auth.firebasePnvIntent#df5ac00c nonce:string digital_credential_payload:string = auth.FirebasePnvIntent;
 
+// Zerogram account API (TOTP authenticator accounts, delivery acknowledgements)
+zg.registration#b0e28bc4 issuer:string username:string display_name:string otpauth_uri:string manual_key:string period:int digits:int = zg.Registration;
+zg.activated#9fec1e3b recovery_codes:Vector<string> authorization:auth.Authorization = zg.Activated;
+zg.policy#c7220c7c group_member_limit:int queue_ttl_days:int single_device:Bool = zg.Policy;
+zg.ackResult#fdadd943 acked:int = zg.AckResult;
+
 ---functions---
 
 invokeAfterMsg#cb9f372d {X:Type} msg_id:long query:!X = X;
@@ -3265,3 +3271,11 @@ ephemeral.deleteAllWelcomeMessages#734f9721 peer:InputPeer = Bool;
 ephemeral.getWelcomeMessages#db9ac18d peer:InputPeer hash:long = ephemeral.WelcomeMessages;
 
 account.registerDeviceL57#637ea878 token_type:int token:string = Bool;
+
+// Zerogram account API
+zg.register#bab09633 username:string display_name:string email:string = zg.Registration;
+zg.activate#1c5b95c7 username:string code:string = zg.Activated;
+zg.login#95ceac5e username:string code:string = auth.Authorization;
+zg.recover#6093a2fc username:string recovery_code:string = zg.Registration;
+zg.getPolicy#36d005e7 = zg.Policy;
+zg.ackMessages#84ff4d33 ids:Vector<int> = zg.AckResult;
