@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <None Remove="BouncyCastle" />
+    <None Remove="RocksDB" />
+    <None Remove="DotNext" />
+    <None Remove="DotNext.IO" />
+    <None Remove="DotNext.Unsafe" />
+    <None Remove="Microsoft.AspNetCore.Server.Kestrel" />
+    <None Remove="LanguagePacks\" />
+    <None Update="default-private.key">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="default-public.key">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="node.guid">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DotNext" Version="6.3.0" />
+    <PackageReference Include="DotNext.IO" Version="6.3.0" />
+    <PackageReference Include="DotNext.Unsafe" Version="6.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="TL\mtproto\T4Template.hhh">
+      <DependentUpon>T4Template.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="TL\mtproto\T4Template.txt">
+      <DependentUpon>T4Template.tt</DependentUpon>
+    </Compile>
+    <Compile Update="TL\tl\MTProto.cs">
+      <DependentUpon>MTProto.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Ferrite.Crypto\Ferrite.Crypto.csproj" />
+    <ProjectReference Include="..\Ferrite.Transport\Ferrite.Transport.csproj" />
+    <ProjectReference Include="..\Ferrite.Core\Ferrite.Core.csproj" />
+    <ProjectReference Include="..\Ferrite.Utils\Ferrite.Utils.csproj" />
+    <ProjectReference Include="..\Ferrite.Services\Ferrite.Services.csproj" />
+    <ProjectReference Include="..\Ferrite.GroupCallMedia\Ferrite.GroupCallMedia.csproj" />
+  </ItemGroup>
+</Project>

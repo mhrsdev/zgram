@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="mtproto.tl">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </AdditionalFiles>
+      <None Remove="baseLayer.tl" />
+      <AdditionalFiles Include="baseLayer.tl">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </AdditionalFiles>
+      <None Remove="e2eChain.tl" />
+      <AdditionalFiles Include="e2eChain.tl">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </AdditionalFiles>
+      <None Remove="layer*.tl" />
+      <AdditionalFiles Include="layer*.tl">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </AdditionalFiles>
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Ferrite.TL.Generator\Ferrite.TL.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="..\Ferrite.TL.Schema\Ferrite.TL.Schema.csproj" OutputItemType="Analyzer" />
+        <ProjectReference Include="..\Ferrite.Utils\Ferrite.Utils.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Remove="mtproto.tl" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="DotNext.IO" Version="6.3.0" />
+    </ItemGroup>
+</Project>

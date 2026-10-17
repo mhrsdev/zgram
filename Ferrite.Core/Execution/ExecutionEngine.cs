@@ -1,0 +1,379 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2022-2026 Aykut Alparslan KOC
+
+using Autofac;
+using Autofac.Features.Indexed;
+using Ferrite.Core.Execution.Functions.BaseLayer;
+using Ferrite.Core.Execution.Functions;
+using Ferrite.Crypto;
+using Ferrite.Data.Repositories;
+using Ferrite.Core.Execution;
+using Ferrite.Core.RequestChain;
+using Ferrite.TL;
+using Ferrite.TL.mtproto;
+using Ferrite.Utils;
+
+namespace Ferrite.Core.Execution;
+
+public class ExecutionEngine : IExecutionEngine
+{
+    private readonly IIndex<FunctionKey, ITLFunction> _functions;
+    private readonly IIndex<FunctionKey, ITLStreamingFunction> _streamingFunctions;
+    private readonly IIndex<FunctionKey, ITLFileFunction> _fileFunctions;
+    private readonly IMTProtoService _mtproto;
+    private readonly IAuthService _auth;
+    private readonly IRandomGenerator _random;
+    private readonly ILogger _log;
+    private readonly IWriteBatchAccessor? _writeBatches;
+    private readonly IAccountSettingsRepository? _accountSettings;
+    private readonly TimeProvider _time;
+    private readonly AsyncLocal<int> _writeScopeDepth = new();
+
+    public ExecutionEngine(IIndex<FunctionKey, ITLFunction> functions,
+        IIndex<FunctionKey, ITLStreamingFunction> streamingFunctions,
+        IIndex<FunctionKey, ITLFileFunction> fileFunctions,
+        IMTProtoService mtproto, IAuthService auth, IRandomGenerator random, ILogger log,
+        IWriteBatchAccessor? writeBatches = null,
+        IAccountSettingsRepository? accountSettings = null,
+        TimeProvider? timeProvider = null)
+    {
+        _functions = functions;
+        _streamingFunctions = streamingFunctions;
+        _fileFunctions = fileFunctions;
+        _mtproto = mtproto;
+        _auth = auth;
+        _random = random;
+        _log = log;
+        _writeBatches = writeBatches;
+        _accountSettings = accountSettings;
+        _time = timeProvider ?? TimeProvider.System;
+    }
+
+    public async ValueTask<TLBytes?> Invoke(TLBytes rpc, TLExecutionContext ctx)
+    {
+        if (_writeBatches == null || _writeScopeDepth.Value != 0)
+        {
+            return await InvokeCore(rpc, ctx);
+        }
+
+        _writeScopeDepth.Value++;
+        try
+        {
+            using IWriteBatchScope scope = _writeBatches.BeginScope();
+            return await InvokeCore(rpc, ctx);
+        }
+        finally
+        {
+            _writeScopeDepth.Value--;
+        }
+    }
+
+    private async ValueTask<TLBytes?> InvokeCore(TLBytes rpc, TLExecutionContext ctx)
+    {
+        if (rpc.Constructor == Constructors.mtproto_GzipPacked)
+        {
+            using var unpacked = GzipPackedHelper.Unpack(rpc);
+            return await InvokeCore(unpacked, ctx);
+        }
+
+        int layer = ctx.ConnectionLayer.Value is ConnectionLayerResolution.Resolved resolved
+            ? resolved.Layer
+            : SupportedLayers.Base;
+        try
+        {
+            using TLBytes? normalized = LayerRequestNormalizer.Normalize(rpc, layer);
+            TLBytes request = normalized ?? rpc;
+            using TLBytes? older = _functions.TryGetValue(
+                new FunctionKey(request.Constructor), out _)
+                ? null
+                : LayerRequestNormalizer.NormalizeOlderMethod(request, layer);
+            request = older ?? request;
+
+            var authError = await GetAuthErrorResult(request.Constructor, ctx);
+            if (authError != null) return authError;
+
+            var found = _functions.TryGetValue(new FunctionKey(request.Constructor), out var func);
+            if (!found)
+            {
+                _log.Error($"#{request.Constructor.ToString("x")} is not found");
+                var err = RpcErrorGenerator.GenerateError(500, "INTERNAL_SERVER_ERROR"u8);
+                return RpcResultGenerator.Generate(err, ctx.MessageId);
+            }
+            return await func!.Process(request, ctx);
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, $"#{rpc.Constructor.ToString("x")} cannot be processed: {e.Message}");
+            var err = RpcErrorGenerator.GenerateError(500, "INTERNAL_SERVER_ERROR"u8);
+            return RpcResultGenerator.Generate(err, ctx.MessageId);
+        }
+    }
+
+    public async ValueTask<TLBytes?> Invoke(ITLStreamingObject rpc, TLExecutionContext ctx)
+    {
+        if (_writeBatches == null || _writeScopeDepth.Value != 0)
+        {
+            return await InvokeStreamingCore(rpc, ctx);
+        }
+
+        _writeScopeDepth.Value++;
+        try
+        {
+            using IWriteBatchScope scope = _writeBatches.BeginScope();
+            return await InvokeStreamingCore(rpc, ctx);
+        }
+        finally
+        {
+            _writeScopeDepth.Value--;
+        }
+    }
+
+    private async ValueTask<TLBytes?> InvokeStreamingCore(ITLStreamingObject rpc,
+        TLExecutionContext ctx)
+    {
+        var authError = await GetAuthErrorResult(rpc.Constructor, ctx);
+        if (authError != null) return authError;
+
+        try
+        {
+            var found = _streamingFunctions.TryGetValue(new FunctionKey(rpc.Constructor), out var func);
+            if (!found)
+            {
+                _log.Error($"#{rpc.Constructor.ToString("x")} is not found");
+                var err = RpcErrorGenerator.GenerateError(500, "INTERNAL_SERVER_ERROR"u8);
+                return RpcResultGenerator.Generate(err, ctx.MessageId);
+            }
+            return await func!.Process(rpc, ctx);
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, $"#{rpc.Constructor.ToString("x")} cannot be processed: {e.Message}");
+            var err = RpcErrorGenerator.GenerateError(500, "INTERNAL_SERVER_ERROR"u8);
+            return RpcResultGenerator.Generate(err, ctx.MessageId);
+        }
+    }
+
+    public async ValueTask<FileResult> InvokeFile(TLBytes rpc, TLExecutionContext ctx)
+    {
+        if (_writeBatches == null || _writeScopeDepth.Value != 0)
+        {
+            return await InvokeFileCore(rpc, ctx);
+        }
+
+        _writeScopeDepth.Value++;
+        try
+        {
+            using IWriteBatchScope scope = _writeBatches.BeginScope();
+            return await InvokeFileCore(rpc, ctx);
+        }
+        finally
+        {
+            _writeScopeDepth.Value--;
+        }
+    }
+
+    private async ValueTask<FileResult> InvokeFileCore(TLBytes rpc, TLExecutionContext ctx)
+    {
+        if (rpc.Constructor == Constructors.mtproto_GzipPacked)
+        {
+            using var unpacked = GzipPackedHelper.Unpack(rpc);
+            return await InvokeFileCore(unpacked, ctx);
+        }
+
+        var authError = await GetAuthError(rpc.Constructor, ctx);
+        if (authError != null) return new FileResult(null, authError);
+
+        try
+        {
+            if (rpc.Constructor == Constructors.baseLayer_InvokeWithLayer)
+            {
+                LayerNegotiationResult negotiation = ConnectionLayerNegotiator.Resolve(rpc);
+                if (!negotiation.IsSuccess)
+                {
+                    return new FileResult(null,
+                        ConnectionLayerNegotiator.Error(negotiation.Failure));
+                }
+
+                using var initConnection = RequestUnwrapper.InvokeWithLayerQuery(rpc, out _);
+                using var info = InitConnectionFunc.CreateAppInfo(
+                    initConnection, ctx, _random);
+                if (!await _auth.SaveClientInfo(info, negotiation.ProvisionalLayer))
+                {
+                    return new FileResult(null, RpcErrorGenerator.GenerateError(
+                        500, "INTERNAL_SERVER_ERROR"u8));
+                }
+                ctx.ConnectionLayer.Resolve(negotiation.ProvisionalLayer);
+                using var query = RequestUnwrapper.InitConnectionQuery(initConnection);
+                return await InvokeFileCore(query, ctx);
+            }
+            if (rpc.Constructor == Constructors.baseLayer_InitConnection)
+            {
+                if (ctx.ConnectionLayer.Value is not ConnectionLayerResolution.Resolved resolved)
+                {
+                    return new FileResult(null, ConnectionLayerNegotiator.Error(
+                        LayerNegotiationFailure.NotInitialized));
+                }
+                using var info = InitConnectionFunc.CreateAppInfo(rpc, ctx, _random);
+                if (!await _auth.SaveClientInfo(info, resolved.Layer))
+                {
+                    return new FileResult(null, RpcErrorGenerator.GenerateError(
+                        500, "INTERNAL_SERVER_ERROR"u8));
+                }
+                using var query = RequestUnwrapper.InitConnectionQuery(rpc);
+                return await InvokeFileCore(query, ctx);
+            }
+            if (rpc.Constructor == Constructors.baseLayer_InvokeAfterMsg)
+            {
+                using var query = RequestUnwrapper.InvokeAfterMsgQuery(rpc);
+                return await InvokeFileCore(query, ctx);
+            }
+            if (rpc.Constructor == Constructors.baseLayer_InvokeAfterMsgs)
+            {
+                using var query = RequestUnwrapper.InvokeAfterMsgsQuery(rpc);
+                return await InvokeFileCore(query, ctx);
+            }
+            if (rpc.Constructor == Constructors.baseLayer_InvokeWithoutUpdates)
+            {
+                using var query = RequestUnwrapper.InvokeWithoutUpdatesQuery(rpc);
+                return await InvokeFileCore(query, ctx);
+            }
+            if (rpc.Constructor == Constructors.baseLayer_InvokeWithMessagesRange)
+            {
+                using var query = RequestUnwrapper.InvokeWithMessagesRangeQuery(rpc);
+                return await InvokeFileCore(query, ctx);
+            }
+            if (rpc.Constructor == Constructors.baseLayer_InvokeWithTakeout)
+            {
+                using var query = RequestUnwrapper.InvokeWithTakeoutQuery(rpc,
+                    out long takeoutId);
+                if (!await IsValidTakeoutAsync(takeoutId, ctx.CurrentAuthKeyId))
+                {
+                    return new FileResult(null, RpcErrorGenerator.GenerateError(
+                        400, "TAKEOUT_INVALID"u8));
+                }
+                return await InvokeFileCore(query, ctx);
+            }
+            if (rpc.Constructor == Constructors.baseLayer_InvokeWithGooglePlayIntegrityPrefix)
+            {
+                using var query = RequestUnwrapper.InvokeWithGooglePlayIntegrityQuery(rpc);
+                return await InvokeFileCore(query, ctx);
+            }
+            if (rpc.Constructor == Constructors.baseLayer_InvokeWithApnsSecretPrefix)
+            {
+                using var query = RequestUnwrapper.InvokeWithApnsSecretQuery(rpc);
+                return await InvokeFileCore(query, ctx);
+            }
+            if (rpc.Constructor == Constructors.baseLayer_InvokeWithReCaptchaPrefix)
+            {
+                using var query = RequestUnwrapper.InvokeWithReCaptchaQuery(rpc);
+                return await InvokeFileCore(query, ctx);
+            }
+            if (!_fileFunctions.TryGetValue(new FunctionKey(rpc.Constructor), out var func))
+            {
+                _log.Error($"#{rpc.Constructor.ToString("x")} is not found");
+                return new FileResult(null, RpcErrorGenerator.GenerateError(500, "INTERNAL_SERVER_ERROR"u8));
+            }
+            return await func!.Process(rpc, ctx);
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, $"#{rpc.Constructor.ToString("x")} cannot be processed: {e.Message}");
+            return new FileResult(null, RpcErrorGenerator.GenerateError(500, "INTERNAL_SERVER_ERROR"u8));
+        }
+    }
+
+    public bool IsFileRequest(TLBytes rpc)
+    {
+        try
+        {
+            return IsFileRequestCore(rpc);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool IsFileRequestCore(TLBytes rpc)
+    {
+        return RequestUnwrapper.MethodConstructor(rpc) == Constructors.baseLayer_GetFile;
+    }
+
+    public bool IsImplemented(int constructor)
+    {
+        try
+        {
+            var func = _functions[new FunctionKey(constructor)];
+            return true;
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, $"#{constructor.ToString("x")} is not registered");
+        }
+
+        return false;
+    }
+
+    private async ValueTask<bool> IsValidTakeoutAsync(long id, long authKeyId)
+    {
+        if (_accountSettings is null) return false;
+        using TL.baseLayer.dto.TLTakeoutSessionState? session =
+            await _accountSettings.GetTakeoutSessionAsync(id);
+        return session is not null &&
+               session.Value.AsTakeoutSessionState().AuthKeyId == authKeyId &&
+               session.Value.AsTakeoutSessionState().ExpiresAt >
+               _time.GetUtcNow().ToUnixTimeSeconds();
+    }
+
+    private async ValueTask<TLBytes?> GetAuthErrorResult(int constructor,
+        TLExecutionContext ctx)
+    {
+        if (await GetAuthError(constructor, ctx) is not { } error) return null;
+        using (error) return RpcResultGenerator.Generate(error, ctx.MessageId);
+    }
+
+    private async ValueTask<TLBytes?> GetAuthError(int constructor, TLExecutionContext ctx)
+    {
+        var keyStatus = await _mtproto.GetKeyStatus(ctx.CurrentAuthKeyId);
+        if (ctx.CurrentAuthKeyId != 0 &&
+            keyStatus == KeyStatus.TempUnbound &&
+            !IsTempKeyAllowed(constructor))
+        {
+            LogAuthDenial("temporary-key-unbound", constructor, ctx, keyStatus);
+            return RpcError.Builder()
+                .ErrorCode(401)
+                .ErrorMessage("AUTH_KEY_PERM_EMPTY"u8)
+                .Build().TLBytes;
+        }
+        if (RequiresAuthorization(constructor) &&
+            !await _auth.IsAuthorized(ctx.CurrentAuthKeyId))
+        {
+            LogAuthDenial("authorization-required", constructor, ctx, keyStatus);
+            return RpcError.Builder()
+                .ErrorCode(401)
+                .ErrorMessage("AUTH_KEY_UNREGISTERED"u8)
+                .Build().TLBytes;
+        }
+
+        return null;
+    }
+
+    private void LogAuthDenial(string reason, int constructor,
+        TLExecutionContext ctx, KeyStatus keyStatus)
+    {
+        _log.Debug($"🔑 auth-denied reason={reason} constructor=#{constructor.ToString("x")} " +
+                   $"authKey={ctx.AuthKeyId} permAuthKey={ctx.PermAuthKeyId} " +
+                   $"current={ctx.CurrentAuthKeyId} status={keyStatus} " +
+                   $"session={ctx.SessionId} msgId={ctx.MessageId}");
+    }
+
+    private bool RequiresAuthorization(int constructor)
+    {
+        return !AuthPolicy.UnauthorizedMethods.Contains(constructor);
+    }
+    
+    private bool IsTempKeyAllowed(int constructor)
+    {
+        return AuthPolicy.TempKeyAllowedMethods.Contains(constructor);
+    }
+}
