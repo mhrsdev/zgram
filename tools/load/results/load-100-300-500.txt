@@ -1,0 +1,130 @@
+--- level 100 ---
+{
+ "connections_requested": 100,
+ "sent": 1084,
+ "received": 1084,
+ "acked": 1084,
+ "ack_err": 0,
+ "delivered_marks": 1084,
+ "dup_received": 0,
+ "connect_ok": 100,
+ "connect_fail": 0,
+ "send_errors": {},
+ "duration_s": 125.0,
+ "send_to_receive_s": {
+  "p50": 0.0107,
+  "p95": 0.649,
+  "p99": 2.255,
+  "max": 3.6441
+ },
+ "ack_rtt_s": {
+  "p50": 0.0071,
+  "p95": 0.0497,
+  "p99": 0.0864
+ },
+ "send_to_delivered_mark_s": {
+  "p50": 0.0205,
+  "p95": 0.7636,
+  "p99": 2.3361
+ },
+ "connect_s": {
+  "p50": 0.136,
+  "p95": 0.234
+ },
+ "resources": {
+  "cpu_percent_mean": 20.9,
+  "cpu_percent_max": 39.7,
+  "cpu_percent_p95": 37.7,
+  "rss_mib_mean": 383.2,
+  "rss_mib_max": 448.8,
+  "samples": 51,
+  "note": "docker stats: 100% = one vCPU"
+ },
+ "loss_or_pending": 0,
+ "error_rate": 0.0
+}
+--- level 300 ---
+{
+ "connections_requested": 300,
+ "sent": 3172,
+ "received": 3171,
+ "acked": 3171,
+ "ack_err": 0,
+ "delivered_marks": 3161,
+ "dup_received": 0,
+ "connect_ok": 300,
+ "connect_fail": 0,
+ "send_errors": {},
+ "duration_s": 125.4,
+ "send_to_receive_s": {
+  "p50": 0.0129,
+  "p95": 2.7243,
+  "p99": 6.4169,
+  "max": 7.5617
+ },
+ "ack_rtt_s": {
+  "p50": 0.0113,
+  "p95": 0.9804,
+  "p99": 1.7089
+ },
+ "send_to_delivered_mark_s": {
+  "p50": 0.0287,
+  "p95": 3.9256,
+  "p99": 7.8843
+ },
+ "connect_s": {
+  "p50": 0.0864,
+  "p95": 0.2067
+ },
+ "resources": null,
+ "loss_or_pending": 1,
+ "error_rate": 0.0
+}
+(level 500 of this run: container OOM-killed at 3 GiB cgroup limit after cumulative 100+300+500 run; see report)
+--- level 500 (separate run, restarted container, 8 procs) ---
+provisioned 500 accounts
+--- level 500 ---
+{
+ "connections_requested": 500,
+ "sent": 3747,
+ "received": 3746,
+ "acked": 3746,
+ "ack_err": 0,
+ "delivered_marks": 2627,
+ "dup_received": 0,
+ "connect_ok": 500,
+ "connect_fail": 0,
+ "send_errors": {},
+ "duration_s": 95.2,
+ "send_to_receive_s": {
+  "p50": 0.0135,
+  "p95": 0.5314,
+  "p99": 1.9591,
+  "max": 3.5883
+ },
+ "ack_rtt_s": {
+  "p50": 0.01,
+  "p95": 0.0957,
+  "p99": 0.5752
+ },
+ "send_to_delivered_mark_s": {
+  "p50": 0.0276,
+  "p95": 0.5851,
+  "p99": 2.8617
+ },
+ "connect_s": {
+  "p50": 3.8288,
+  "p95": 4.645
+ },
+ "resources": {
+  "cpu_percent_mean": 74.6,
+  "cpu_percent_max": 192.1,
+  "cpu_percent_p95": 125.0,
+  "rss_mib_mean": 841.7,
+  "rss_mib_max": 1331.2,
+  "samples": 45,
+  "note": "docker stats: 100% = one vCPU"
+ },
+ "loss_or_pending": 1,
+ "error_rate": 0.0
+}
