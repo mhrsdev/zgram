@@ -1,0 +1,8 @@
+{
+  "owner_init_in_container": "ok",
+  "overwrite_refused_rc": 2,
+  "bootstrap_key_matches": true,
+  "owner_login_with_printed_words": "ok",
+  "connect_message_decrypts": true,
+  "words_in_logs": false
+}
