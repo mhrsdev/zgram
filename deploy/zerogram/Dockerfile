@@ -4,8 +4,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0.100-noble AS build
 WORKDIR /src
 COPY . .
-RUN dotnet restore Ferrite/Ferrite.csproj
-RUN dotnet publish Ferrite/Ferrite.csproj -c Release --no-restore -p:UseAppHost=false --output /out
+RUN dotnet restore Ferrite/Ferrite.csproj -r linux-x64
+RUN dotnet publish Ferrite/Ferrite.csproj -c Release -r linux-x64 --self-contained false --no-restore -p:UseAppHost=false --output /out
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0.0-noble
 COPY --from=build /out /app

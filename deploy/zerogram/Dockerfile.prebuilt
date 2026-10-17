@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Same runtime image, but the server was already published on another machine:
-#   dotnet publish Ferrite/Ferrite.csproj -c Release -p:UseAppHost=false -o deploy/zerogram/publish
+#   dotnet publish Ferrite/Ferrite.csproj -c Release -r linux-x64 --self-contained false -p:UseAppHost=false -o deploy/zerogram/publish
 #   docker build -f deploy/zerogram/Dockerfile.prebuilt -t zerogram:local .
 FROM mcr.microsoft.com/dotnet/runtime:10.0.0-noble
 COPY deploy/zerogram/publish /app

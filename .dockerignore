@@ -1,12 +1,12 @@
 .git
-.github
-.idea
 **/bin
 **/obj
 **/node_modules
 docs
-deploy
-group-call-worker
+client
+tools
 data
 *.log
-.ferrite
+deploy/zerogram/backups
+deploy/zerogram/dist
+deploy/zerogram/.env

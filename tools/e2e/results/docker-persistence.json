@@ -1,0 +1,30 @@
+{
+  "graceful_restart_healthy_after_s": 7.3,
+  "after_docker_restart_messages": [
+    "docker-0",
+    "docker-1",
+    "docker-2",
+    "docker-3",
+    "docker-4"
+  ],
+  "kill9_restart_healthy_after_s": 6.3,
+  "after_kill9_messages": [
+    "docker-2",
+    "docker-3",
+    "docker-4"
+  ],
+  "post_kill_send_ids_increase": {
+    "id1": 500006,
+    "id2": 500007,
+    "pts1": 500007,
+    "pts2": 500008
+  },
+  "modes": [
+    "700 /data",
+    "700 /data/state",
+    "600 /data/default-private.key",
+    "600 /data/state/zerogram.db",
+    "600 /data/state/zerogram-epoch"
+  ],
+  "user": "1654"
+}
