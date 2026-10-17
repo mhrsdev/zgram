@@ -58,6 +58,9 @@ class Server:
             time.sleep(0.3)
         raise TimeoutError(f'server did not start: {self.tail()}')
 
+    def dll(self):
+        return DLL
+
     def tail(self, n=2000):
         return self.log_path.read_bytes()[-n:].decode('utf8', 'replace')
 

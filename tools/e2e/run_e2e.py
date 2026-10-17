@@ -424,7 +424,7 @@ async def t_policy(s):
     await c.disconnect()
 
 
-OWNER_PASSWORD = 'correct-horse-battery-staple'
+OWNER_WORDS = zgowner.mnemonic_from_entropy(bytes(range(16)))   # fixed test identity
 
 
 async def t_owner_disabled_by_default(s):
@@ -441,18 +441,18 @@ async def t_owner_login_and_group_tokens(s):
     body = json.loads(urllib.request.urlopen(f'http://127.0.0.1:{s.bootstrap_port}/zg/key', timeout=10).read())
     import base64
     assert base64.b64decode(body['key']) == key_der and int(body['fp'], 16) == fp & (2**64 - 1), body
-    # --- password proof: a wrong password never gets past the *client-side* check of the server proof
+    # --- phrase proof: wrong words never get past the *client-side* check of the server proof
     c = make_client('127.0.0.1', s.port); await c.connect()
     try:
-        await zgowner.owner_login(c, 'a-completely-wrong-password', fp)
-        raise AssertionError('wrong password accepted')
+        await zgowner.owner_login(c, zgowner.mnemonic_from_entropy(bytes(range(1, 17))), fp)
+        raise AssertionError('wrong words accepted')
     except ValueError:
         pass
     # a tampered client proof is refused, and a challenge cannot be answered twice
-    await expect_error(zgowner.owner_login(c, OWNER_PASSWORD, fp, tamper_proof=True), 'OWNER_INVALID')
+    await expect_error(zgowner.owner_login(c, OWNER_WORDS, fp, tamper_proof=True), 'OWNER_INVALID')
     cn = os.urandom(16)
     ch = await c(zg.OwnerHello(cn))
-    k = zgowner.derive_key(OWNER_PASSWORD, ch.salt, ch.iterations)
+    k = zgowner.owner_key(OWNER_WORDS)
     good = zgowner.proof(k, 'zg-owner-cli', cn, ch.server_nonce, fp)
     auth = await c(zg.OwnerLogin(cn, ch.server_nonce, good))
     assert auth.user.username == 'owner', auth.user.username
@@ -460,7 +460,7 @@ async def t_owner_login_and_group_tokens(s):
     # the proof is bound to the key fingerprint (a server with another key cannot impersonate this one)
     c2 = make_client('127.0.0.1', s.port); await c2.connect()
     try:
-        await zgowner.owner_login(c2, OWNER_PASSWORD, fp ^ 1)
+        await zgowner.owner_login(c2, OWNER_WORDS, fp ^ 1)
         raise AssertionError('proof accepted for a different key fingerprint')
     except ValueError:
         pass
@@ -514,9 +514,48 @@ async def t_owner_login_and_group_tokens(s):
     await c.disconnect(); await c2.disconnect()
 
 
+async def t_owner_init_cli(s):
+    """--owner-init creates the 12 words once, stores only the derived key (0600) and refuses to overwrite."""
+    import subprocess, stat
+    s.stop()
+    env = dict(os.environ, FERRITE_DATA_PATH=str(s.data), DOTNET_CLI_TELEMETRY_OPTOUT='1')
+    cmd = [s.DOTNET if hasattr(s, 'DOTNET') else 'dotnet', s.dll()]
+    run = lambda *a: subprocess.run(cmd + list(a), env=env, capture_output=True, text=True, cwd=s.dir)
+    first = run('--owner-init')
+    assert first.returncode == 0, first.stderr
+    words = [l.strip() for l in first.stdout.splitlines() if len(l.split()) == 12][0]
+    assert zgowner.normalize_mnemonic(words) == words, 'printed words are not a valid 12-word phrase'
+    keyfile = s.data / 'owner.key'
+    assert keyfile.read_text().strip() == zgowner.owner_key(words).hex()
+    assert stat.S_IMODE(keyfile.stat().st_mode) == 0o600, oct(keyfile.stat().st_mode)
+    assert words not in (first.stderr + keyfile.read_text()), 'the phrase must not be stored'
+    again = run('--owner-init')
+    assert again.returncode == 2 and keyfile.read_text().strip() == zgowner.owner_key(words).hex()
+    # a server started on this data directory accepts exactly these words
+    s.start(); load_server_key(s.public_key_pkcs1())
+    fp = zgowner.fingerprint_of_pkcs1(s.public_key_pkcs1_der())
+    c = make_client('127.0.0.1', s.port); await c.connect()
+    auth = await zgowner.owner_login(c, words, fp)
+    assert auth.user.username == 'owner'
+    await c.disconnect(); s.stop()
+    # --force replaces the identity: the old words stop working
+    forced = run('--owner-init', '--force')
+    new_words = [l.strip() for l in forced.stdout.splitlines() if len(l.split()) == 12][0]
+    assert forced.returncode == 0 and new_words != words
+    s.start(); load_server_key(s.public_key_pkcs1())
+    c = make_client('127.0.0.1', s.port); await c.connect()
+    try:
+        await zgowner.owner_login(c, words, fp)
+        raise AssertionError('old words still accepted')
+    except ValueError:
+        pass
+    await zgowner.owner_login(c, new_words, fp)
+    await c.disconnect()
+
+
 # ----------------------------------------------------------------------------- runner
 
-OWNER_ENV = {'ZEROGRAM_OWNER_PASSWORD': OWNER_PASSWORD, 'ZEROGRAM_SERVER_NAME': 'Test Server',
+OWNER_ENV = {'ZEROGRAM_OWNER_KEY': zgowner.owner_key(OWNER_WORDS).hex(), 'ZEROGRAM_SERVER_NAME': 'Test Server',
              'ZEROGRAM_GROUP_MEMBER_LIMIT': '4'}
 
 TESTS = [
@@ -543,6 +582,7 @@ TESTS = [
     ('policy', {}, t_policy),
     ('owner_disabled_by_default', {}, t_owner_disabled_by_default),
     ('owner_login_and_group_tokens', OWNER_ENV, t_owner_login_and_group_tokens),
+    ('owner_init_cli', {}, t_owner_init_cli),
 ]
 
 

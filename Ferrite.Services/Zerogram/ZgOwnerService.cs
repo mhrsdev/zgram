@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Zerogram: server-owner sign-in.
 //
-// The owner password is configured on the server (ZEROGRAM_OWNER_PASSWORD, >= 12 characters) and never
-// travels over the network. Sign-in is a mutual HMAC proof keyed by PBKDF2(password):
+// The owner is identified by a 12-word phrase (BIP-39 words) created once with --owner-init. The server keeps
+// only the key derived from it, and the phrase never travels over the network. Sign-in is a mutual HMAC proof
+// keyed by that derived key K:
 //   server -> client: server_proof = HMAC(K, "zg-owner-srv" | client_nonce | server_nonce | key_fingerprint)
 //   client -> server: client_proof = HMAC(K, "zg-owner-cli" | client_nonce | server_nonce | key_fingerprint)
 // Because the server's RSA key fingerprint is part of both proofs, an impostor that substituted its own key
-// cannot produce a valid server proof, so the app learns that it talks to the real server. The owner then
+// cannot produce a valid server proof, so the app learns that it talks to the real server. While the app stays
+// installed the owner session persists and the phrase is not asked for again; a new phone (or a reinstall)
+// needs the 12 words. The owner then
 // signs in as the reserved "owner" account (a normal Ferrite user that also holds the admin privileges).
 
 using System.Collections.Concurrent;
@@ -23,8 +26,8 @@ public sealed record ZgOwnerChallenge(byte[] ServerNonce, byte[] Salt, int Itera
 
 public sealed class ZgOwnerService
 {
-    public const int Iterations = 200_000;
-    public const int MinPasswordLength = 12;
+    // The owner key comes from a 128-bit phrase, so no slow KDF is needed on the wire: salt/iterations in the
+    // challenge are reserved (empty / 0) and ignored by clients.
     private const int NonceSize = 16;
 
     private readonly ZerogramOptions _options;
@@ -50,20 +53,9 @@ public sealed class ZgOwnerService
         _dataCenter = dataCenter;
         _time = time;
         _log = log;
-        string? password = options.OwnerPassword;
-        if (string.IsNullOrEmpty(password))
-        {
-            _log.Information("zerogram: owner sign-in is disabled (ZEROGRAM_OWNER_PASSWORD is not set)");
-        }
-        else if (password.Length < MinPasswordLength)
-        {
-            _log.Warning($"zerogram: owner sign-in is disabled (ZEROGRAM_OWNER_PASSWORD must have at least {MinPasswordLength} characters)");
-        }
-        else
-        {
-            _key = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password), _vault.OwnerSalt(), Iterations,
-                HashAlgorithmName.SHA256, 32);
-        }
+        _key = ZgOwnerKeyFile.Load(options.DataPath, options.OwnerKeyHex);
+        if (_key is null)
+            _log.Information("zerogram: owner sign-in is disabled (run the --owner-init command to create the 12-word owner identity)");
     }
 
     public bool Enabled => _key is not null;
@@ -90,7 +82,7 @@ public sealed class ZgOwnerService
                 _pending.TryRemove(stale, out _);
         byte[] serverNonce = RandomNumberGenerator.GetBytes(NonceSize);
         _pending[authKeyId] = (clientNonce, serverNonce, now + 60);
-        return ZgResult<ZgOwnerChallenge>.Success(new ZgOwnerChallenge(serverNonce, _vault.OwnerSalt(), Iterations,
+        return ZgResult<ZgOwnerChallenge>.Success(new ZgOwnerChallenge(serverNonce, [], 0,
             Proof("zg-owner-srv", clientNonce, serverNonce)));
     }
 

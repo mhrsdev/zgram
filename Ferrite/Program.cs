@@ -2,6 +2,7 @@
 // Copyright (C) 2022-2026 Aykut Alparslan KOC
 
 using System;
+using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -29,6 +30,31 @@ public class Program
             {
                 Environment.Exit(1);
             }
+            return;
+        }
+
+        if (args.Length > 0 && args[0] == "--owner-init")
+        {
+            // Creates the 12-word server-owner identity. The phrase is printed once and NOT stored; only the key
+            // derived from it is saved (owner-only file). Run it again with --force to replace the identity.
+            string ownerDataPath = Environment.GetEnvironmentVariable("FERRITE_DATA_PATH") ?? "data";
+            bool force = args.Contains("--force");
+            string phrase = Ferrite.Services.Zerogram.Bip39.Generate();
+            byte[] key = Ferrite.Services.Zerogram.Bip39.OwnerKey(phrase);
+            if (!Ferrite.Services.Zerogram.ZgOwnerKeyFile.Save(ownerDataPath, key, force))
+            {
+                Console.Error.WriteLine("An owner identity already exists. Nothing was changed. " +
+                    "Use --owner-init --force to replace it (the old 12 words stop working).");
+                Environment.Exit(2);
+            }
+            Console.WriteLine();
+            Console.WriteLine("Your 12 owner words (write them on paper; they are shown ONLY NOW and are not stored on the server):");
+            Console.WriteLine();
+            Console.WriteLine("  " + phrase);
+            Console.WriteLine();
+            Console.WriteLine("Whoever has these words can sign in as the owner of this server. Enter them in the app under");
+            Console.WriteLine("\"Sign in as a server owner\" together with the server IP.");
+            Console.WriteLine();
             return;
         }
 

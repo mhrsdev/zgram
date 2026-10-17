@@ -41,8 +41,8 @@ public sealed record ZerogramOptions
 
     public int GroupMemberLimit { get; init; } = 50;
 
-    /// <summary>Password of the server owner (>= 12 characters). Owner sign-in is disabled while unset.</summary>
-    public string? OwnerPassword { get; init; }
+    /// <summary>Owner key (64 hex characters) derived from the 12-word phrase; the key file is used when unset.</summary>
+    public string? OwnerKeyHex { get; init; }
 
     /// <summary>Human-readable server name embedded in the connection message.</summary>
     public string ServerName { get; init; } = "Zerogram";
@@ -83,7 +83,7 @@ public sealed record ZerogramOptions
             MaxAttemptsPerIp = Int(read("ZEROGRAM_MAX_ATTEMPTS_PER_IP"), o.MaxAttemptsPerIp),
             MaxRegistrationsPerIp = Int(read("ZEROGRAM_MAX_REGISTRATIONS_PER_IP"), o.MaxRegistrationsPerIp),
             GroupMemberLimit = Int(read("ZEROGRAM_GROUP_MEMBER_LIMIT"), o.GroupMemberLimit),
-            OwnerPassword = read("ZEROGRAM_OWNER_PASSWORD") is { Length: > 0 } ownerPassword ? ownerPassword : null,
+            OwnerKeyHex = read("ZEROGRAM_OWNER_KEY") is { Length: > 0 } ownerKey ? ownerKey : null,
             ServerName = read("ZEROGRAM_SERVER_NAME") is { Length: > 0 } serverName ? serverName : o.ServerName,
             BootstrapPort = int.TryParse(read("ZEROGRAM_BOOTSTRAP_PORT"), out int bp) && bp >= 0
                 ? bp

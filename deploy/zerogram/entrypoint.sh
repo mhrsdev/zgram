@@ -8,4 +8,4 @@ if [ -z "${FERRITE_PUBLIC_ADDRESS:-}" ]; then
   echo "FERRITE_PUBLIC_ADDRESS is not set: set it to the IP address or host name clients will use." >&2
   exit 64
 fi
-exec dotnet /app/Ferrite.dll
+exec dotnet /app/Ferrite.dll "$@"

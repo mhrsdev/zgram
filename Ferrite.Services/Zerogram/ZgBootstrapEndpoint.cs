@@ -30,7 +30,7 @@ public sealed class ZgBootstrapEndpoint : IDisposable
     public void Start()
     {
         if (_options.BootstrapPort <= 0 || _listener is not null) return;
-        if ((_options.OwnerPassword?.Length ?? 0) < ZgOwnerService.MinPasswordLength) return; // owner sign-in is off
+        if (ZgOwnerKeyFile.Load(_options.DataPath, _options.OwnerKeyHex) is null) return; // owner sign-in is off
         try
         {
             _listener = new HttpListener();

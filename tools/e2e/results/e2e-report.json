@@ -1,8 +1,20 @@
 [
   {
+    "test": "owner_disabled_by_default",
+    "status": "PASS",
+    "seconds": 13.9,
+    "detail": ""
+  },
+  {
     "test": "owner_login_and_group_tokens",
     "status": "PASS",
-    "seconds": 18.4,
+    "seconds": 19.4,
+    "detail": ""
+  },
+  {
+    "test": "owner_init_cli",
+    "status": "PASS",
+    "seconds": 32.0,
     "detail": ""
   }
 ]
