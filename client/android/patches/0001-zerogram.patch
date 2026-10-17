@@ -1,8 +1,8 @@
 diff --git a/TMessagesProj/config/release/AndroidManifest_standalone.xml b/TMessagesProj/config/release/AndroidManifest_standalone.xml
-index 53e0fa79..b373fdb7 100644
+index 53e0fa790c74e8f13cb7e20ccc5f3e30f0a6c8c7..b17e43b4643002d35360ad192cdf96cbedfadb3c 100644
 --- a/TMessagesProj/config/release/AndroidManifest_standalone.xml
 +++ b/TMessagesProj/config/release/AndroidManifest_standalone.xml
-@@ -7,31 +7,71 @@
+@@ -7,31 +7,72 @@
      <uses-feature android:name="android.hardware.location.network" android:required="false" />
      <uses-feature android:name="android.hardware.location" android:required="false" />
      <uses-feature android:name="android.hardware.LOCATION" android:required="false" />
@@ -15,6 +15,8 @@ index 53e0fa79..b373fdb7 100644
 -    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
 -    <uses-permission android:name="android.permission.CALL_PHONE" />
      <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
++    <!-- Zerogram: the optional in-app updater hands a verified APK to the system installer. -->
++    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
      <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 -    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
 -    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
@@ -68,7 +70,6 @@ index 53e0fa79..b373fdb7 100644
 +    <uses-permission android:name="android.permission.READ_PROFILE" tools:node="remove" />
 +    <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" tools:node="remove" />
 +    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
-+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove" />
 +    <uses-permission android:name="android.permission.SEND_SMS" tools:node="remove" />
 +    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" tools:node="remove" />
 +    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" tools:node="remove" />
@@ -98,7 +99,7 @@ index 53e0fa79..b373fdb7 100644
      <application
          android:icon="@mipmap/ic_launcher_sa"
 diff --git a/TMessagesProj/jni/tgnet/ConnectionsManager.cpp b/TMessagesProj/jni/tgnet/ConnectionsManager.cpp
-index 32d590e8..e108b856 100644
+index 32d590e852443031cb299ac3bb5057879682ac2b..e108b856c7f5a924c59e55fd78452eb9476d8a43 100644
 --- a/TMessagesProj/jni/tgnet/ConnectionsManager.cpp
 +++ b/TMessagesProj/jni/tgnet/ConnectionsManager.cpp
 @@ -13,6 +13,7 @@
@@ -194,7 +195,7 @@ index 32d590e8..e108b856 100644
                      Datacenter *datacenter = getDatacenterWithId(iter.first);
                      DatacenterInfo *info = iter.second.get();
 diff --git a/TMessagesProj/jni/tgnet/ConnectionsManager.h b/TMessagesProj/jni/tgnet/ConnectionsManager.h
-index d5ab4bdd..9e4b0e90 100644
+index d5ab4bdd66331b21f69fd8421051b5590a9d8dc4..9e4b0e9063a7db27ccf82ce347f9c3a9da327d25 100644
 --- a/TMessagesProj/jni/tgnet/ConnectionsManager.h
 +++ b/TMessagesProj/jni/tgnet/ConnectionsManager.h
 @@ -92,6 +92,7 @@ private:
@@ -219,14 +220,19 @@ index d5ab4bdd..9e4b0e90 100644
      std::string lastInitSystemLangcode = "";
      std::atomic<uint32_t> lastRequestToken{50000000};
 diff --git a/TMessagesProj/jni/tgnet/Handshake.cpp b/TMessagesProj/jni/tgnet/Handshake.cpp
-index a51f2b44..37cc59f3 100644
+index a51f2b446d7b5d4dfc40c5e3565ac484eeecf7e1..af6823aee7626e298adee98a0b15273ebe2ff7ab 100644
 --- a/TMessagesProj/jni/tgnet/Handshake.cpp
 +++ b/TMessagesProj/jni/tgnet/Handshake.cpp
-@@ -363,6 +363,14 @@ void Handshake::processHandshakeResponse_resPQ(TLObject *message, int64_t messag
+@@ -362,7 +362,18 @@ void Handshake::processHandshakeResponse_resPQ(TLObject *message, int64_t messag
+                 }
              }
          } else {
-             if (serverPublicKeys.empty()) {
-+                // Zerogram: only the operator's own key is ever trusted (no built-in Telegram keys).
+-            if (serverPublicKeys.empty()) {
++            {
++                // Zerogram: only this account's own server key is ever trusted (no built-in Telegram keys).
++                // The lists are thread-local and shared by every account, so they are rebuilt each time.
++                serverPublicKeys.clear();
++                serverPublicKeysFingerprints.clear();
 +                ConnectionsManager &zgManager = ConnectionsManager::getInstance(currentDatacenter->instanceNum);
 +                if (zgManager.zgConfigured) {
 +                    serverPublicKeys.emplace_back(zgManager.zgPublicKeyPem);
@@ -238,7 +244,7 @@ index a51f2b44..37cc59f3 100644
                      serverPublicKeys.emplace_back("-----BEGIN RSA PUBLIC KEY-----\n"
                                                    "MIIBCgKCAQEAyMEdY1aR+sCR3ZSJrtztKTKqigvO/vBfqACJLZtS7QMgCGXJ6XIR\n"
 diff --git a/TMessagesProj/proguard-rules.pro b/TMessagesProj/proguard-rules.pro
-index aeab02b2..49a1a113 100644
+index aeab02b296c606afad8de4b04c1b5042479da1d2..49a1a1133875419cf9549d292513d2b21a68d1fb 100644
 --- a/TMessagesProj/proguard-rules.pro
 +++ b/TMessagesProj/proguard-rules.pro
 @@ -113,4 +113,6 @@
@@ -251,19 +257,20 @@ index aeab02b2..49a1a113 100644
 +# Zerogram: TL request/response classes are looked up by constructor id; keep them intact.
 +-keep class org.telegram.zerogram.** { *; }
 diff --git a/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java b/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java
-index dc63e5e2..cc05b301 100644
+index dc63e5e28b7d17b373b1bfd57d81fc8cb668e8bd..39eb29e3ff8a13ee6fb7d2bd8f9dec96f65dc09d 100644
 --- a/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java
 +++ b/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java
-@@ -271,7 +271,7 @@ public class ApplicationLoader extends Application {
+@@ -271,7 +271,8 @@ public class ApplicationLoader extends Application {
              ContactsController.getInstance(a).checkAppAccount();
              DownloadController.getInstance(a);
          }
 -        BillingController.getInstance().startConnection();
 +        org.telegram.zerogram.ZgSession.onAppStart();
++        org.telegram.zerogram.ZgUpdater.scheduleCheck();
      }
  
      public ApplicationLoader() {
-@@ -361,7 +361,8 @@ public class ApplicationLoader extends Application {
+@@ -361,7 +362,8 @@ public class ApplicationLoader extends Application {
          if (preferences.contains("pushService")) {
              enabled = preferences.getBoolean("pushService", true);
          } else {
@@ -274,7 +281,7 @@ index dc63e5e2..cc05b301 100644
          if (enabled) {
              try {
 diff --git a/TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java b/TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java
-index 7a0b35b1..29ac0099 100644
+index 7a0b35b130be246bb0349ddb47d44416c0f44380..29ac00996926291c3417393ddbe6e21366b9bc1e 100644
 --- a/TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java
 +++ b/TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java
 @@ -735,13 +735,13 @@ public class MessagesController extends BaseController implements NotificationCe
@@ -499,7 +506,7 @@ index 7a0b35b1..29ac0099 100644
              case "premium":
                  return getUserConfig().isPremium();
 diff --git a/TMessagesProj/src/main/java/org/telegram/messenger/MessagesStorage.java b/TMessagesProj/src/main/java/org/telegram/messenger/MessagesStorage.java
-index a6a0468f..67071717 100644
+index a6a0468fb0017b52fdf0bb66910a76286d89de0a..670717177816928824adf1b6cf54f23307f1e4de 100644
 --- a/TMessagesProj/src/main/java/org/telegram/messenger/MessagesStorage.java
 +++ b/TMessagesProj/src/main/java/org/telegram/messenger/MessagesStorage.java
 @@ -406,6 +406,11 @@ public class MessagesStorage extends BaseController {
@@ -529,7 +536,7 @@ index a6a0468f..67071717 100644
                  loadGroupedMessagesForTopicUpdates(topicUpdatesInUi);
                  getMessagesController().processDialogsUpdateRead(messagesCounts, mentionCounts);
 diff --git a/TMessagesProj/src/main/java/org/telegram/messenger/UserConfig.java b/TMessagesProj/src/main/java/org/telegram/messenger/UserConfig.java
-index 0f79e448..7a7373c6 100644
+index 0f79e448085ba97baad3e9b7a9d7efb6a48b5dc6..22bc3269c73020cb305eb9aba9dda1ff7f92ebef 100644
 --- a/TMessagesProj/src/main/java/org/telegram/messenger/UserConfig.java
 +++ b/TMessagesProj/src/main/java/org/telegram/messenger/UserConfig.java
 @@ -25,7 +25,7 @@ public class UserConfig extends BaseController {
@@ -537,12 +544,21 @@ index 0f79e448..7a7373c6 100644
      public static int selectedAccount;
      public final static int MAX_ACCOUNT_DEFAULT_COUNT = 3;
 -    public final static int MAX_ACCOUNT_COUNT = 4;
-+    public final static int MAX_ACCOUNT_COUNT = 1; // Zerogram: one account per device
++    public final static int MAX_ACCOUNT_COUNT = 4; // Zerogram: one account slot per joined server
  
      private final Object sync = new Object();
      private volatile boolean configLoaded;
+@@ -122,7 +122,7 @@ public class UserConfig extends BaseController {
+     }
+ 
+     public static int getMaxAccountCount() {
+-        return hasPremiumOnAccounts() ? 5 : 3;
++        return MAX_ACCOUNT_COUNT; // Zerogram: no premium tiers
+     }
+ 
+     public int getNewMessageId() {
 diff --git a/TMessagesProj/src/main/java/org/telegram/tgnet/ConnectionsManager.java b/TMessagesProj/src/main/java/org/telegram/tgnet/ConnectionsManager.java
-index f8383aef..3332e5b2 100644
+index f8383aefb22803d445f5a896736d7b26ca0af90d..3332e5b27d492f0e75accb7daa9c044f234c83e4 100644
 --- a/TMessagesProj/src/main/java/org/telegram/tgnet/ConnectionsManager.java
 +++ b/TMessagesProj/src/main/java/org/telegram/tgnet/ConnectionsManager.java
 @@ -855,6 +855,10 @@ public class ConnectionsManager extends BaseController {
@@ -637,7 +653,7 @@ index f8383aef..3332e5b2 100644
              return null;
          }
 diff --git a/TMessagesProj/src/main/java/org/telegram/ui/Adapters/ContactsAdapter.java b/TMessagesProj/src/main/java/org/telegram/ui/Adapters/ContactsAdapter.java
-index 404491d6..d73be65d 100644
+index 404491d6d6f8ff4e0622dbe8b053447cfe3c8801..d73be65df3d112d639dca19be8d6bd2ca4fefeba 100644
 --- a/TMessagesProj/src/main/java/org/telegram/ui/Adapters/ContactsAdapter.java
 +++ b/TMessagesProj/src/main/java/org/telegram/ui/Adapters/ContactsAdapter.java
 @@ -576,7 +576,8 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
@@ -651,7 +667,7 @@ index 404491d6..d73be65d 100644
                      }
                  } else {
 diff --git a/TMessagesProj/src/main/java/org/telegram/ui/ChatActivity.java b/TMessagesProj/src/main/java/org/telegram/ui/ChatActivity.java
-index 26d82ff8..27004de9 100644
+index 26d82ff828f2176ca728a44ed3cdcaf29cc7b2fb..27004de9beaa0a2b3987b2579f9ea6d8d76a6038 100644
 --- a/TMessagesProj/src/main/java/org/telegram/ui/ChatActivity.java
 +++ b/TMessagesProj/src/main/java/org/telegram/ui/ChatActivity.java
 @@ -45658,9 +45658,42 @@ public class ChatActivity extends BaseFragment implements
@@ -697,8 +713,43 @@ index 26d82ff8..27004de9 100644
          ArrayList<Integer> icons,
          ArrayList<CharSequence> items,
          ArrayList<Integer> options
+diff --git a/TMessagesProj/src/main/java/org/telegram/ui/ChatEditActivity.java b/TMessagesProj/src/main/java/org/telegram/ui/ChatEditActivity.java
+index 0f60a14af70532bd02383d26aa418db6b0c3088d..885937605ff168ba1a4a8e8d51c9ea26e037840f 100644
+--- a/TMessagesProj/src/main/java/org/telegram/ui/ChatEditActivity.java
++++ b/TMessagesProj/src/main/java/org/telegram/ui/ChatEditActivity.java
+@@ -1202,9 +1202,8 @@ public class ChatEditActivity extends BaseFragment implements ImageUpdater.Image
+             inviteLinksCell = new TextCell(context);
+             inviteLinksCell.setBackground(Theme.getSelectorDrawable(false));
+             inviteLinksCell.setOnClickListener(v -> {
+-                ManageLinksActivity fragment = new ManageLinksActivity(chatId, 0, 0);
+-                fragment.setInfo(info, info.exported_invite);
+-                presentFragment(fragment);
++                // Zerogram: invite links are replaced by the group's random 32-digit join token.
++                presentFragment(new org.telegram.zerogram.ZgGroupTokenActivity(chatId));
+             });
+ 
+             reactionsCell = new TextCell(context);
+@@ -2454,14 +2453,11 @@ public class ChatEditActivity extends BaseFragment implements ImageUpdater.Image
+             }
+             reactionsCell.setVisibility(ChatObject.canChangeChatInfo(currentChat) ? View.VISIBLE : View.GONE);
+             updateReactionsCell(animated);
+-            if (info == null || !ChatObject.canUserDoAdminAction(currentChat, ChatObject.ACTION_INVITE) || (!isPrivate && currentChat.creator)) {
+-                inviteLinksCell.setVisibility(View.GONE);
++            if (currentChat != null && currentChat.creator && !ChatObject.isChannel(currentChat)) {
++                inviteLinksCell.setVisibility(View.VISIBLE);
++                inviteLinksCell.setTextAndIcon(getString(R.string.ZgGroupTokenRow), R.drawable.msg_link2, true);
+             } else {
+-                if (info.invitesCount > 0) {
+-                    inviteLinksCell.setTextAndValueAndIcon(getString("InviteLinks", R.string.InviteLinks), Integer.toString(info.invitesCount), R.drawable.msg_link2, true);
+-                } else {
+-                    inviteLinksCell.setTextAndValueAndIcon(getString("InviteLinks", R.string.InviteLinks), "1", R.drawable.msg_link2, true);
+-                }
++                inviteLinksCell.setVisibility(View.GONE);
+             }
+         }
+ 
 diff --git a/TMessagesProj/src/main/java/org/telegram/ui/Components/ChatActivityEnterView.java b/TMessagesProj/src/main/java/org/telegram/ui/Components/ChatActivityEnterView.java
-index ac402db5..425e264b 100644
+index ac402db585fc02173215c2ab5a462648163f5c27..425e264b7742b163cbf4aa20e12741db715277c2 100644
 --- a/TMessagesProj/src/main/java/org/telegram/ui/Components/ChatActivityEnterView.java
 +++ b/TMessagesProj/src/main/java/org/telegram/ui/Components/ChatActivityEnterView.java
 @@ -2748,6 +2748,12 @@ public class ChatActivityEnterView extends FrameLayout implements
@@ -734,7 +785,7 @@ index ac402db5..425e264b 100644
              public void setTranslationY(float translationY) {
                  super.setTranslationY(translationY);
 diff --git a/TMessagesProj/src/main/java/org/telegram/ui/Components/voip/VoIPHelper.java b/TMessagesProj/src/main/java/org/telegram/ui/Components/voip/VoIPHelper.java
-index 1c4f424a..e4e2cd55 100644
+index 1c4f424ad7329a371dd04c42cf99cea28e2bf999..e4e2cd5599d837f1db9a66b61f1e721b6d0af995 100644
 --- a/TMessagesProj/src/main/java/org/telegram/ui/Components/voip/VoIPHelper.java
 +++ b/TMessagesProj/src/main/java/org/telegram/ui/Components/voip/VoIPHelper.java
 @@ -74,6 +74,10 @@ public class VoIPHelper {
@@ -760,7 +811,7 @@ index 1c4f424a..e4e2cd55 100644
  			return;
  		}
 diff --git a/TMessagesProj/src/main/java/org/telegram/ui/ContactsActivity.java b/TMessagesProj/src/main/java/org/telegram/ui/ContactsActivity.java
-index 4411ecda..fb74a0f6 100644
+index 4411ecda67b01d830f617d149b9b59f59daec93f..fb74a0f63bf6880c99cb4720ec0dd2025f5e8181 100644
 --- a/TMessagesProj/src/main/java/org/telegram/ui/ContactsActivity.java
 +++ b/TMessagesProj/src/main/java/org/telegram/ui/ContactsActivity.java
 @@ -699,6 +699,10 @@ public class ContactsActivity extends BaseFragment implements FactorAnimator.Tar
@@ -775,7 +826,7 @@ index 4411ecda..fb74a0f6 100644
                                  AccountFrozenAlert.show(currentAccount);
                                  return;
 diff --git a/TMessagesProj/src/main/java/org/telegram/ui/DialogsActivity.java b/TMessagesProj/src/main/java/org/telegram/ui/DialogsActivity.java
-index b04f149f..ec9fc480 100644
+index b04f149fd372b690fc1c0883d08107f08bad23e2..ec9fc4801827b308af136f6de0e4a4d4949c5780 100644
 --- a/TMessagesProj/src/main/java/org/telegram/ui/DialogsActivity.java
 +++ b/TMessagesProj/src/main/java/org/telegram/ui/DialogsActivity.java
 @@ -10376,7 +10376,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
@@ -797,27 +848,105 @@ index b04f149f..ec9fc480 100644
              permissons.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
          }
 diff --git a/TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java b/TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java
-index 470be57c..82b8fc65 100644
+index 470be57c7f2ace33daa8184ce97c48102d546588..01d07e243df879e7b102c46ac0f5b5001c1111b3 100644
 --- a/TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java
 +++ b/TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java
-@@ -1083,10 +1083,8 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
+@@ -1083,10 +1083,16 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
      }
  
      private BaseFragment getClientNotActivatedFragment() {
 -        if (LoginActivity.loadCurrentState(false, currentAccount).getInt("currentViewNum", 0) != 0) {
 -            return new LoginActivity();
--        }
++        // Zerogram: welcome (user / server owner) -> username + authenticator or owner sign-in replace the
++        // phone-number login and the intro. Each server lives in its own account slot.
++        org.telegram.zerogram.ZgConfig.Endpoint endpoint = org.telegram.zerogram.ZgConfig.read(UserConfig.selectedAccount);
++        if (endpoint == null) {
++            return new org.telegram.zerogram.ZgWelcomeActivity(UserConfig.selectedAccount);
+         }
 -        return new IntroActivity();
-+        // Zerogram: username + authenticator sign-in replaces the phone-number login and the intro.
++        if (endpoint.isOwner()) {
++            return new org.telegram.zerogram.ZgOwnerLoginActivity(UserConfig.selectedAccount);
++        }
 +        return new org.telegram.zerogram.ZgAuthActivity();
      }
  
      public FireworksOverlay getFireworksOverlay() {
+@@ -6961,6 +6967,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
+     protected void onResume() {
+         super.onResume();
+         isResumed = true;
++        org.telegram.zerogram.ZgUpdater.maybePrompt(this);
+         pipActivityHandler.onResume();
+         if (onResumeStaticCallback != null) {
+             onResumeStaticCallback.run();
+diff --git a/TMessagesProj/src/main/java/org/telegram/ui/LogoutActivity.java b/TMessagesProj/src/main/java/org/telegram/ui/LogoutActivity.java
+index 28e3b76553e312431cc13c1ad58ae3be27335c9e..72549aff58906ed4a918941332bf47abc443ae53 100644
+--- a/TMessagesProj/src/main/java/org/telegram/ui/LogoutActivity.java
++++ b/TMessagesProj/src/main/java/org/telegram/ui/LogoutActivity.java
+@@ -134,7 +134,7 @@ public class LogoutActivity extends BaseFragment {
+                     freeAccounts -= (UserConfig.MAX_ACCOUNT_COUNT - UserConfig.MAX_ACCOUNT_DEFAULT_COUNT);
+                 }
+                 if (freeAccounts > 0 && availableAccount != null) {
+-                    presentFragment(new LoginActivity(availableAccount));
++                    presentFragment(new org.telegram.zerogram.ZgWelcomeActivity(availableAccount));
+                 } else if (!UserConfig.hasPremiumOnAccounts()) {
+                     LimitReachedBottomSheet limitReachedBottomSheet = new LimitReachedBottomSheet(this, getContext(), TYPE_ACCOUNTS, currentAccount, null);
+                     showDialog(limitReachedBottomSheet);
+diff --git a/TMessagesProj/src/main/java/org/telegram/ui/MainTabsActivity.java b/TMessagesProj/src/main/java/org/telegram/ui/MainTabsActivity.java
+index 184113284c3ea2a0b2a256923c9f6d38ad62ff84..2d49f432030d3b9ea835bf5b65d2d168e99ef335 100644
+--- a/TMessagesProj/src/main/java/org/telegram/ui/MainTabsActivity.java
++++ b/TMessagesProj/src/main/java/org/telegram/ui/MainTabsActivity.java
+@@ -637,7 +637,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
+                     freeAccounts -= (UserConfig.MAX_ACCOUNT_COUNT - UserConfig.MAX_ACCOUNT_DEFAULT_COUNT);
+                 }
+                 if (freeAccounts > 0 && availableAccount != null) {
+-                    presentFragment(new LoginActivity(availableAccount));
++                    presentFragment(new org.telegram.zerogram.ZgWelcomeActivity(availableAccount));
+                 } else if (!UserConfig.hasPremiumOnAccounts()) {
+                     showDialog(new LimitReachedBottomSheet(this, getContext(), TYPE_ACCOUNTS, currentAccount, null));
+                 }
 diff --git a/TMessagesProj/src/main/java/org/telegram/ui/ProfileActivity.java b/TMessagesProj/src/main/java/org/telegram/ui/ProfileActivity.java
-index 40634647..8425f078 100644
+index 40634647b4d9e061d7318299bb97701fabe58890..8a1f8daea393f563994c900c23c9376c8c1fcd94 100644
 --- a/TMessagesProj/src/main/java/org/telegram/ui/ProfileActivity.java
 +++ b/TMessagesProj/src/main/java/org/telegram/ui/ProfileActivity.java
-@@ -10618,8 +10618,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
+@@ -633,6 +633,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
+     private int liteModeRow;
+     private int stickersRow;
+     private int devicesRow;
++    private int zgServersRow = -1;
++    private int zgJoinRow = -1;
++    private int zgOwnerRow = -1;
++    private int zgUpdateRow = -1;
+     private int devicesSectionRow;
+     private int helpHeaderRow;
+     private int questionRow;
+@@ -4546,6 +4550,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
+                 presentFragment(new LiteModeSettingsActivity());
+             } else if (position == devicesRow) {
+                 presentFragment(new SessionsActivity(0));
++            } else if (position == zgServersRow) {
++                presentFragment(new org.telegram.zerogram.ZgServersActivity());
++            } else if (position == zgJoinRow) {
++                presentFragment(new org.telegram.zerogram.ZgJoinGroupActivity());
++            } else if (position == zgOwnerRow) {
++                presentFragment(new org.telegram.zerogram.ZgOwnerPanelActivity());
++            } else if (position == zgUpdateRow) {
++                presentFragment(new org.telegram.zerogram.ZgUpdateActivity());
+             } else if (position == questionRow) {
+                 showDialog(AlertsCreator.createSupportAlert(ProfileActivity.this, resourcesProvider));
+             } else if (position == faqRow) {
+@@ -10482,6 +10494,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
+         liteModeRow = -1;
+         stickersRow = -1;
+         devicesRow = -1;
++        zgServersRow = -1;
++        zgJoinRow = -1;
++        zgOwnerRow = -1;
++        zgUpdateRow = -1;
+         devicesSectionRow = -1;
+         helpHeaderRow = -1;
+         questionRow = -1;
+@@ -10618,8 +10634,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                      setAvatarRow = rowCount++;
                      setAvatarSectionRow = rowCount++;
                  }
@@ -827,7 +956,22 @@ index 40634647..8425f078 100644
                  setUsernameRow = rowCount++;
                  bioRow = rowCount++;
  
-@@ -10657,7 +10656,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
+@@ -10648,6 +10663,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
+                     filtersRow = rowCount++;
+                 }
+                 devicesRow = rowCount++;
++                // Zerogram: servers, join-by-token and (for the server owner) server management.
++                zgServersRow = rowCount++;
++                zgJoinRow = rowCount++;
++                org.telegram.zerogram.ZgConfig.Endpoint zgEndpoint = org.telegram.zerogram.ZgConfig.read(currentAccount);
++                if (zgEndpoint != null && zgEndpoint.isOwner()) {
++                    zgOwnerRow = rowCount++;
++                }
++                zgUpdateRow = rowCount++;
+                 languageRow = rowCount++;
+                 devicesSectionRow = rowCount++;
+                 if (!getMessagesController().premiumFeaturesBlocked()) {
+@@ -10657,7 +10680,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                      starsRow = rowCount++;
                  }
                  StarsController.getInstance(currentAccount, true).getBalance();
@@ -836,7 +980,7 @@ index 40634647..8425f078 100644
                      tonRow = rowCount++;
                  }
                  if (!getMessagesController().premiumFeaturesBlocked()) {
-@@ -10669,10 +10668,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
+@@ -10669,10 +10692,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                  if (premiumRow >= 0 || starsRow >= 0 || tonRow >= 0 || businessRow >= 0 || premiumGiftingRow >= 0) {
                      premiumSectionsRow = rowCount++;
                  }
@@ -848,7 +992,7 @@ index 40634647..8425f078 100644
                  if (BuildVars.LOGS_ENABLED || BuildVars.DEBUG_PRIVATE_VERSION) {
                      helpSectionCell = rowCount++;
                      debugHeaderRow = rowCount++;
-@@ -10689,7 +10685,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
+@@ -10689,7 +10709,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
              } else {
                  String username = UserObject.getPublicUsername(user);
                  boolean hasInfo = userInfo != null && !TextUtils.isEmpty(userInfo.about) || user != null && !TextUtils.isEmpty(username);
@@ -857,12 +1001,72 @@ index 40634647..8425f078 100644
  
                  if (!isBot && userInfo != null && userInfo.unofficial_security_risk) {
                      unofficialSecurityRiskRow = rowCount++;
+@@ -13863,6 +13883,19 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
+                         textCell.setText("Switch Backend", false);
+                     } else if (position == devicesRow) {
+                         textCell.setTextAndIcon(LocaleController.getString(R.string.Devices), R.drawable.msg2_devices, true);
++                    } else if (position == zgServersRow) {
++                        textCell.setTextAndIcon(LocaleController.getString(R.string.ZgMenuServers), R.drawable.msg2_data, true);
++                    } else if (position == zgJoinRow) {
++                        textCell.setTextAndIcon(LocaleController.getString(R.string.ZgMenuJoin), R.drawable.msg_groups_create, true);
++                    } else if (position == zgOwnerRow) {
++                        textCell.setTextAndIcon(LocaleController.getString(R.string.ZgMenuOwner), R.drawable.msg2_secret, true);
++                    } else if (position == zgUpdateRow) {
++                        org.telegram.zerogram.ZgUpdater.Release zgRelease = org.telegram.zerogram.ZgUpdater.available();
++                        if (zgRelease != null) {
++                            textCell.setTextAndValueAndIcon(LocaleController.getString(R.string.ZgMenuUpdateAvailable), zgRelease.version, R.drawable.msg2_data, true);
++                        } else {
++                            textCell.setTextAndIcon(LocaleController.getString(R.string.ZgMenuUpdate), R.drawable.msg2_data, true);
++                        }
+                     } else if (position == setAvatarRow) {
+                         cellCameraDrawable.setCustomEndFrame(86);
+                         cellCameraDrawable.setCurrentFrame(85, false);
+@@ -14281,7 +14314,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
+                 return position == notificationRow || position == numberRow || position == privacyRow ||
+                         position == languageRow || position == setUsernameRow || position == bioRow ||
+                         position == versionRow || position == dataRow || position == chatRow ||
+-                        position == questionRow || position == devicesRow || position == filtersRow || position == stickersRow ||
++                        position == questionRow || position == devicesRow || position == zgServersRow || position == zgJoinRow || position == zgOwnerRow || position == zgUpdateRow || position == filtersRow || position == stickersRow ||
+                         position == faqRow || position == policyRow || position == sendLogsRow || position == sendLastLogsRow ||
+                         position == clearLogsRow || position == switchBackendRow || position == setAvatarRow ||
+                         position == addToGroupButtonRow || position == premiumRow || position == premiumGiftingRow ||
+@@ -14327,7 +14360,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
+                     position == addMemberRow || position == joinRow || position == unblockRow ||
+                     position == sendMessageRow || position == notificationRow || position == privacyRow ||
+                     position == languageRow || position == dataRow || position == chatRow ||
+-                    position == questionRow || position == devicesRow || position == filtersRow || position == stickersRow ||
++                    position == questionRow || position == devicesRow || position == zgServersRow || position == zgJoinRow || position == zgOwnerRow || position == zgUpdateRow || position == filtersRow || position == stickersRow ||
+                     position == faqRow || position == policyRow || position == sendLogsRow || position == sendLastLogsRow ||
+                     position == clearLogsRow || position == switchBackendRow || position == setAvatarRow || position == addToGroupButtonRow ||
+                     position == addToContactsRow || position == liteModeRow || position == premiumGiftingRow || position == businessRow ||
+@@ -14552,7 +14585,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
+                             }
+                         }
+                         if (freeAccount >= 0) {
+-                            f.presentFragment(new LoginActivity(freeAccount));
++                            f.presentFragment(new org.telegram.zerogram.ZgWelcomeActivity(freeAccount));
+                         }
+                     }).withLink("tg://settings/edit/add-account"),
+                     // TODO:
+diff --git a/TMessagesProj/src/main/java/org/telegram/ui/UserInfoActivity.java b/TMessagesProj/src/main/java/org/telegram/ui/UserInfoActivity.java
+index 42e770a6b2bd23458912a1361ed6ff3cd3b2750d..a4bff7ea71cad5e56e98f38162f8860069e95160 100644
+--- a/TMessagesProj/src/main/java/org/telegram/ui/UserInfoActivity.java
++++ b/TMessagesProj/src/main/java/org/telegram/ui/UserInfoActivity.java
+@@ -485,7 +485,7 @@ public class UserInfoActivity extends UniversalFragment implements NotificationC
+                 freeAccounts -= (UserConfig.MAX_ACCOUNT_COUNT - UserConfig.MAX_ACCOUNT_DEFAULT_COUNT);
+             }
+             if (freeAccounts > 0 && availableAccount != null) {
+-                presentFragment(new LoginActivity(availableAccount));
++                presentFragment(new org.telegram.zerogram.ZgWelcomeActivity(availableAccount));
+             } else if (!UserConfig.hasPremiumOnAccounts()) {
+                 showDialog(new LimitReachedBottomSheet(this, getContext(), TYPE_ACCOUNTS, currentAccount, null));
+             }
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/TL_zg.java b/TMessagesProj/src/main/java/org/telegram/zerogram/TL_zg.java
 new file mode 100644
-index 00000000..6a75ea31
+index 0000000000000000000000000000000000000000..56ab28463759967927687a0d5e52ecfe1b3aafa6
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/TL_zg.java
-@@ -0,0 +1,304 @@
+@@ -0,0 +1,502 @@
 +package org.telegram.zerogram;
 +
 +import org.telegram.tgnet.InputSerializedData;
@@ -1166,10 +1370,208 @@ index 00000000..6a75ea31
 +            stream.writeInt32(constructor);
 +        }
 +    }
++
++    // ------------------------------------------------------------------ owner / group tokens
++
++    public static class OwnerChallenge extends TLObject {
++        public static final int constructor = 0x487d9d47;
++
++        public byte[] server_nonce;
++        public byte[] salt;
++        public int iterations;
++        public byte[] server_proof;
++
++        public static OwnerChallenge TLdeserialize(InputSerializedData stream, int constructor, boolean exception) {
++            final OwnerChallenge result = OwnerChallenge.constructor != constructor ? null : new OwnerChallenge();
++            return TLdeserialize(OwnerChallenge.class, result, stream, constructor, exception);
++        }
++
++        @Override
++        public void readParams(InputSerializedData stream, boolean exception) {
++            server_nonce = stream.readByteArray(exception);
++            salt = stream.readByteArray(exception);
++            iterations = stream.readInt32(exception);
++            server_proof = stream.readByteArray(exception);
++        }
++
++        @Override
++        public void serializeToStream(OutputSerializedData stream) {
++            stream.writeInt32(constructor);
++            stream.writeByteArray(server_nonce);
++            stream.writeByteArray(salt);
++            stream.writeInt32(iterations);
++            stream.writeByteArray(server_proof);
++        }
++    }
++
++    public static class GroupToken extends TLObject {
++        public static final int constructor = 0x1fce1382;
++
++        public long chat_id;
++        public String title;
++        public String token;
++        public int members;
++        public int date;
++
++        public static GroupToken TLdeserialize(InputSerializedData stream, int constructor, boolean exception) {
++            final GroupToken result = GroupToken.constructor != constructor ? null : new GroupToken();
++            return TLdeserialize(GroupToken.class, result, stream, constructor, exception);
++        }
++
++        @Override
++        public void readParams(InputSerializedData stream, boolean exception) {
++            chat_id = stream.readInt64(exception);
++            title = stream.readString(exception);
++            token = stream.readString(exception);
++            members = stream.readInt32(exception);
++            date = stream.readInt32(exception);
++        }
++
++        @Override
++        public void serializeToStream(OutputSerializedData stream) {
++            stream.writeInt32(constructor);
++            stream.writeInt64(chat_id);
++            stream.writeString(title);
++            stream.writeString(token);
++            stream.writeInt32(members);
++            stream.writeInt32(date);
++        }
++    }
++
++    public static class OwnerInfo extends TLObject {
++        public static final int constructor = 0x66b6c5a0;
++
++        public String server_name;
++        public String connect_message;
++        public ArrayList<GroupToken> groups = new ArrayList<>();
++
++        public static OwnerInfo TLdeserialize(InputSerializedData stream, int constructor, boolean exception) {
++            final OwnerInfo result = OwnerInfo.constructor != constructor ? null : new OwnerInfo();
++            return TLdeserialize(OwnerInfo.class, result, stream, constructor, exception);
++        }
++
++        @Override
++        public void readParams(InputSerializedData stream, boolean exception) {
++            server_name = stream.readString(exception);
++            connect_message = stream.readString(exception);
++            groups = Vector.deserialize(stream, GroupToken::TLdeserialize, exception);
++        }
++
++        @Override
++        public void serializeToStream(OutputSerializedData stream) {
++            stream.writeInt32(constructor);
++            stream.writeString(server_name);
++            stream.writeString(connect_message);
++            Vector.serialize(stream, groups);
++        }
++    }
++
++    public static class ownerHello extends TLMethod<OwnerChallenge> {
++        public static final int constructor = 0x07bab1d5;
++
++        public byte[] client_nonce;
++
++        @Override
++        public OwnerChallenge deserializeResponseT(InputSerializedData stream, int constructor, boolean exception) {
++            return OwnerChallenge.TLdeserialize(stream, constructor, exception);
++        }
++
++        @Override
++        public void serializeToStream(OutputSerializedData stream) {
++            stream.writeInt32(constructor);
++            stream.writeByteArray(client_nonce);
++        }
++    }
++
++    public static class ownerLogin extends TLMethod<TLRPC.auth_Authorization> {
++        public static final int constructor = 0x9f36102e;
++
++        public byte[] client_nonce;
++        public byte[] server_nonce;
++        public byte[] client_proof;
++
++        @Override
++        public TLRPC.auth_Authorization deserializeResponseT(InputSerializedData stream, int constructor, boolean exception) {
++            return TLRPC.auth_Authorization.TLdeserialize(stream, constructor, exception);
++        }
++
++        @Override
++        public void serializeToStream(OutputSerializedData stream) {
++            stream.writeInt32(constructor);
++            stream.writeByteArray(client_nonce);
++            stream.writeByteArray(server_nonce);
++            stream.writeByteArray(client_proof);
++        }
++    }
++
++    public static class getOwnerInfo extends TLMethod<OwnerInfo> {
++        public static final int constructor = 0xb2801d1e;
++
++        @Override
++        public OwnerInfo deserializeResponseT(InputSerializedData stream, int constructor, boolean exception) {
++            return OwnerInfo.TLdeserialize(stream, constructor, exception);
++        }
++
++        @Override
++        public void serializeToStream(OutputSerializedData stream) {
++            stream.writeInt32(constructor);
++        }
++    }
++
++    public static class getGroupToken extends TLMethod<GroupToken> {
++        public static final int constructor = 0x36dbb88a;
++
++        public long chat_id;
++
++        @Override
++        public GroupToken deserializeResponseT(InputSerializedData stream, int constructor, boolean exception) {
++            return GroupToken.TLdeserialize(stream, constructor, exception);
++        }
++
++        @Override
++        public void serializeToStream(OutputSerializedData stream) {
++            stream.writeInt32(constructor);
++            stream.writeInt64(chat_id);
++        }
++    }
++
++    public static class rotateGroupToken extends TLMethod<GroupToken> {
++        public static final int constructor = 0x478a1fe1;
++
++        public long chat_id;
++
++        @Override
++        public GroupToken deserializeResponseT(InputSerializedData stream, int constructor, boolean exception) {
++            return GroupToken.TLdeserialize(stream, constructor, exception);
++        }
++
++        @Override
++        public void serializeToStream(OutputSerializedData stream) {
++            stream.writeInt32(constructor);
++            stream.writeInt64(chat_id);
++        }
++    }
++
++    public static class joinGroup extends TLMethod<TLRPC.Updates> {
++        public static final int constructor = 0x03c02002;
++
++        public String token;
++
++        @Override
++        public TLRPC.Updates deserializeResponseT(InputSerializedData stream, int constructor, boolean exception) {
++            return TLRPC.Updates.TLdeserialize(stream, constructor, exception);
++        }
++
++        @Override
++        public void serializeToStream(OutputSerializedData stream) {
++            stream.writeInt32(constructor);
++            stream.writeString(token);
++        }
++    }
 +}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/UserConfigReset.java b/TMessagesProj/src/main/java/org/telegram/zerogram/UserConfigReset.java
 new file mode 100644
-index 00000000..906250ca
+index 0000000000000000000000000000000000000000..f4c25e1943264a752c06df7403dd3d0edde03fe3
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/UserConfigReset.java
 @@ -0,0 +1,15 @@
@@ -1185,12 +1587,12 @@ index 00000000..906250ca
 +    static void clearForNewServer() {
 +        UserConfig config = UserConfig.getInstance(0);
 +        config.clearConfig();
-+        ZgSession.forgetDatabaseOwner();
++        ZgSession.forgetDatabaseOwner(0);
 +    }
 +}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgAck.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgAck.java
 new file mode 100644
-index 00000000..f11415db
+index 0000000000000000000000000000000000000000..a4a98a162fe498e89d4ca69336b8722c5caa78d8
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgAck.java
 @@ -0,0 +1,146 @@
@@ -1268,7 +1670,7 @@ index 00000000..f11415db
 +    }
 +
 +    public static void flush(int account) {
-+        if (!ZgConfig.isConfigured()) {
++        if (!ZgConfig.isConfigured(account)) {
 +            return;
 +        }
 +        final MessagesStorage storage = MessagesStorage.getInstance(account);
@@ -1342,10 +1744,10 @@ index 00000000..f11415db
 +}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgAuthActivity.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgAuthActivity.java
 new file mode 100644
-index 00000000..fc8054a4
+index 0000000000000000000000000000000000000000..0938e3d674a18a0889bc4a13617095f7ff647504
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgAuthActivity.java
-@@ -0,0 +1,568 @@
+@@ -0,0 +1,530 @@
 +package org.telegram.zerogram;
 +
 +import android.content.ClipData;
@@ -1397,7 +1799,6 @@ index 00000000..fc8054a4
 + */
 +public class ZgAuthActivity extends BaseFragment {
 +
-+    private static final int PAGE_SERVER = 0;
 +    private static final int PAGE_LOGIN = 1;
 +    private static final int PAGE_REGISTER = 2;
 +    private static final int PAGE_ACTIVATE = 3;
@@ -1422,8 +1823,6 @@ index 00000000..fc8054a4
 +    private EditText displayNameField;
 +    private EditText emailField;
 +    private EditText recoveryField;
-+    private EditText serverAddressField;
-+    private EditText serverKeyField;
 +
 +    public ZgAuthActivity() {
 +        super();
@@ -1443,7 +1842,7 @@ index 00000000..fc8054a4
 +        scroll.addView(content, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 +        root.addView(scroll, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 +        fragmentView = root;
-+        show(ZgConfig.isConfigured() ? PAGE_LOGIN : PAGE_SERVER);
++        show(PAGE_LOGIN);
 +        return fragmentView;
 +    }
 +
@@ -1460,10 +1859,6 @@ index 00000000..fc8054a4
 +            show(PAGE_LOGIN);
 +            return false;
 +        }
-+        if (page == PAGE_SERVER && ZgConfig.isConfigured()) {
-+            show(PAGE_LOGIN);
-+            return false;
-+        }
 +        return page != PAGE_CODES;
 +    }
 +
@@ -1474,9 +1869,6 @@ index 00000000..fc8054a4
 +        content.removeAllViews();
 +        errorView = null;
 +        switch (newPage) {
-+            case PAGE_SERVER:
-+                buildServer();
-+                break;
 +            case PAGE_REGISTER:
 +                buildRegister();
 +                break;
@@ -1599,34 +1991,6 @@ index 00000000..fc8054a4
 +
 +    // ------------------------------------------------------------------ pages
 +
-+    private void buildServer() {
-+        title(str(R.string.ZgServerTitle));
-+        body(str(R.string.ZgServerHelp));
-+        serverAddressField = field(str(R.string.ZgHintServerAddress), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI, 600);
-+        serverKeyField = field(str(R.string.ZgHintServerKey), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE, 4000);
-+        serverKeyField.setMinLines(3);
-+        ZgConfig.Endpoint current = ZgConfig.read();
-+        if (current != null) {
-+            serverAddressField.setText(ZgConfig.toLink(current));
-+        }
-+        errorLine();
-+        button(str(R.string.ZgServerSave), this::onSaveServer, true);
-+        if (ZgConfig.isConfigured()) {
-+            button(str(R.string.ZgGoLogin), () -> show(PAGE_LOGIN), false);
-+        }
-+    }
-+
-+    private void onSaveServer() {
-+        try {
-+            ZgConfig.Endpoint endpoint = ZgConfig.parse(text(serverAddressField), text(serverKeyField));
-+            ZgConfig.save(endpoint);
-+            UserConfigReset.clearForNewServer();
-+            ZgConfig.restart(ApplicationLoader.applicationContext);
-+        } catch (Exception e) {
-+            showError(str(R.string.ZgServerInvalid));
-+        }
-+    }
-+
 +    private void buildLogin() {
 +        title(str(R.string.ZgLoginTitle));
 +        body(str(R.string.ZgLoginSubtitle));
@@ -1636,7 +2000,7 @@ index 00000000..fc8054a4
 +        button(str(R.string.ZgLoginButton), this::onLogin, true);
 +        button(str(R.string.ZgGoRegister), () -> show(PAGE_REGISTER), false);
 +        button(str(R.string.ZgGoRecover), () -> show(PAGE_RECOVER), false);
-+        button(str(R.string.ZgGoServer), () -> show(PAGE_SERVER), false);
++        button(str(R.string.ZgOwnerOtherServer), () -> ZgSession.abandonAccountAndRestart(currentAccount), false);
 +        if (pendingUsername.length() > 0) {
 +            usernameField.setText(pendingUsername);
 +        }
@@ -1914,12 +2278,141 @@ index 00000000..fc8054a4
 +        }
 +    }
 +}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgBip39.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgBip39.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c9b18c603cb4de9a487d64afcdc2de39b77777eb
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgBip39.java
+@@ -0,0 +1,123 @@
++package org.telegram.zerogram;
++
++import org.telegram.messenger.ApplicationLoader;
++import org.telegram.messenger.R;
++
++import java.io.BufferedReader;
++import java.io.InputStream;
++import java.io.InputStreamReader;
++import java.nio.charset.StandardCharsets;
++import java.security.MessageDigest;
++import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Locale;
++import java.util.Map;
++
++import javax.crypto.Mac;
++import javax.crypto.spec.SecretKeySpec;
++
++/**
++ * The server owner is identified by 12 words (BIP-39 English list, 128-bit entropy + 4-bit checksum). The owner
++ * key the sign-in proof uses is derived from them exactly as the server does:
++ * K = HMAC-SHA256(PBKDF2-HMAC-SHA512(phrase, "mnemonic", 2048, 64), "zerogram/owner/v1").
++ */
++final class ZgBip39 {
++
++    private static List<String> words;
++    private static Map<String, Integer> index;
++
++    private ZgBip39() {
++    }
++
++    private static synchronized void load() throws Exception {
++        if (words != null) {
++            return;
++        }
++        List<String> list = new ArrayList<>(2048);
++        try (InputStream in = ApplicationLoader.applicationContext.getResources().openRawResource(R.raw.zg_bip39_english);
++             BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
++            String line;
++            while ((line = reader.readLine()) != null) {
++                line = line.trim();
++                if (!line.isEmpty()) {
++                    list.add(line);
++                }
++            }
++        }
++        if (list.size() != 2048) {
++            throw new IllegalStateException("word list");
++        }
++        Map<String, Integer> map = new HashMap<>();
++        for (int i = 0; i < list.size(); i++) {
++            map.put(list.get(i), i);
++        }
++        words = list;
++        index = map;
++    }
++
++    /** Lower-cases and collapses whitespace; null unless it is 12 known words with a correct checksum. */
++    static String normalize(String input) {
++        try {
++            load();
++            String[] parts = (input == null ? "" : input).trim().toLowerCase(Locale.ROOT).split("\\s+");
++            if (parts.length != 12) {
++                return null;
++            }
++            boolean[] bits = new boolean[132];
++            for (int w = 0; w < 12; w++) {
++                Integer i = index.get(parts[w]);
++                if (i == null) {
++                    return null;
++                }
++                for (int b = 0; b < 11; b++) {
++                    bits[w * 11 + b] = ((i >> (10 - b)) & 1) == 1;
++                }
++            }
++            byte[] entropy = new byte[16];
++            for (int i = 0; i < 128; i++) {
++                if (bits[i]) {
++                    entropy[i / 8] |= (byte) (1 << (7 - i % 8));
++                }
++            }
++            byte checksum = MessageDigest.getInstance("SHA-256").digest(entropy)[0];
++            for (int i = 0; i < 4; i++) {
++                if (bits[128 + i] != (((checksum >> (7 - i)) & 1) == 1)) {
++                    return null;
++                }
++            }
++            return String.join(" ", parts);
++        } catch (Throwable t) {
++            return null;
++        }
++    }
++
++    /** The 32-byte owner key for an already normalized phrase. Slow (PBKDF2): call off the UI thread. */
++    static byte[] ownerKey(String normalized) throws Exception {
++        byte[] seed = pbkdf2Sha512(normalized.getBytes(StandardCharsets.UTF_8), "mnemonic".getBytes(StandardCharsets.UTF_8), 2048, 64);
++        Mac mac = Mac.getInstance("HmacSHA256");
++        mac.init(new SecretKeySpec(seed, "HmacSHA256"));
++        return mac.doFinal("zerogram/owner/v1".getBytes(StandardCharsets.UTF_8));
++    }
++
++    static byte[] pbkdf2Sha512(byte[] password, byte[] salt, int iterations, int length) throws Exception {
++        Mac mac = Mac.getInstance("HmacSHA512");
++        mac.init(new SecretKeySpec(password, "HmacSHA512"));
++        byte[] out = new byte[length];
++        int blocks = (length + 63) / 64;
++        for (int block = 1; block <= blocks; block++) {
++            mac.update(salt);
++            mac.update(new byte[]{(byte) (block >>> 24), (byte) (block >>> 16), (byte) (block >>> 8), (byte) block});
++            byte[] u = mac.doFinal();
++            byte[] t = u.clone();
++            for (int i = 1; i < iterations; i++) {
++                u = mac.doFinal(u);
++                for (int j = 0; j < t.length; j++) {
++                    t[j] ^= u[j];
++                }
++            }
++            System.arraycopy(t, 0, out, (block - 1) * 64, Math.min(64, length - (block - 1) * 64));
++        }
++        return out;
++    }
++}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgConfig.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgConfig.java
 new file mode 100644
-index 00000000..c6950c9c
+index 0000000000000000000000000000000000000000..f7a239670deccc506575662823a040d69378f933
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgConfig.java
-@@ -0,0 +1,320 @@
+@@ -0,0 +1,423 @@
 +package org.telegram.zerogram;
 +
 +import android.content.Context;
@@ -1928,6 +2421,7 @@ index 00000000..c6950c9c
 +import android.util.Base64;
 +
 +import org.telegram.messenger.ApplicationLoader;
++import org.telegram.messenger.UserConfig;
 +
 +import java.io.ByteArrayOutputStream;
 +import java.io.File;
@@ -1950,6 +2444,8 @@ index 00000000..c6950c9c
 +
 +    public static final String FILE_NAME = "zerogram.properties";
 +    public static final int DEFAULT_PORT = 5222;
++    public static final String ROLE_USER = "user";
++    public static final String ROLE_OWNER = "owner";
 +
 +    private ZgConfig() {
 +    }
@@ -1959,21 +2455,56 @@ index 00000000..c6950c9c
 +        public final int port;
 +        public final String pkcs1Base64;
 +        public final String fingerprintHex;
++        /** Label shown to the user instead of the address (the address itself is never displayed). */
++        public final String name;
++        /** {@link #ROLE_USER} or {@link #ROLE_OWNER}. */
++        public final String role;
 +
 +        Endpoint(String host, int port, String pkcs1Base64, String fingerprintHex) {
++            this(host, port, pkcs1Base64, fingerprintHex, "", ROLE_USER);
++        }
++
++        Endpoint(String host, int port, String pkcs1Base64, String fingerprintHex, String name, String role) {
 +            this.host = host;
 +            this.port = port;
 +            this.pkcs1Base64 = pkcs1Base64;
 +            this.fingerprintHex = fingerprintHex;
++            this.name = name == null ? "" : name;
++            this.role = ROLE_OWNER.equals(role) ? ROLE_OWNER : ROLE_USER;
++        }
++
++        public Endpoint with(String name, String role) {
++            return new Endpoint(host, port, pkcs1Base64, fingerprintHex, name, role);
++        }
++
++        public boolean isOwner() {
++            return ROLE_OWNER.equals(role);
++        }
++
++        public boolean sameServer(Endpoint other) {
++            return other != null && host.equalsIgnoreCase(other.host) && port == other.port
++                    && fingerprintHex.equalsIgnoreCase(other.fingerprintHex);
 +        }
 +    }
 +
-+    private static File file() {
-+        return new File(ApplicationLoader.getFilesDirFixed(), FILE_NAME);
++    /** Same directory the native networking layer uses for this account (see ConnectionsManager.init). */
++    static File dir(int account) {
++        File base = ApplicationLoader.getFilesDirFixed();
++        if (account == 0) {
++            return base;
++        }
++        File dir = new File(base, "account" + account);
++        //noinspection ResultOfMethodCallIgnored
++        dir.mkdirs();
++        return dir;
 +    }
 +
-+    public static synchronized Endpoint read() {
-+        File f = file();
++    private static File file(int account) {
++        return new File(dir(account), FILE_NAME);
++    }
++
++    public static synchronized Endpoint read(int account) {
++        File f = file(account);
 +        if (!f.isFile()) {
 +            return null;
 +        }
@@ -1987,14 +2518,22 @@ index 00000000..c6950c9c
 +            if (host.isEmpty() || port <= 0 || pem.isEmpty() || fp.length() != 16) {
 +                return null;
 +            }
-+            return new Endpoint(host, port, pem, fp);
++            return new Endpoint(host, port, pem, fp, p.getProperty("zg.name", ""), p.getProperty("zg.role", ROLE_USER));
 +        } catch (Throwable e) {
 +            return null;
 +        }
 +    }
 +
++    public static boolean isConfigured(int account) {
++        return read(account) != null;
++    }
++
++    public static Endpoint read() {
++        return read(UserConfig.selectedAccount);
++    }
++
 +    public static boolean isConfigured() {
-+        return read() != null;
++        return isConfigured(UserConfig.selectedAccount);
 +    }
 +
 +    /** "host", "host:port" or "[v6]:port". Returns {host, port}. */
@@ -2050,6 +2589,23 @@ index 00000000..c6950c9c
 +        return new Endpoint((String) hp[0], (Integer) hp[1],
 +                Base64.encodeToString(encodePkcs1(ne[0], ne[1]), Base64.NO_WRAP),
 +                fingerprint(ne[0], ne[1]));
++    }
++
++    /** Builds an endpoint from a raw RSA public key (PKCS#1 or SubjectPublicKeyInfo DER). */
++    public static Endpoint fromKey(String host, int port, byte[] der, String name, String role) {
++        BigInteger[] ne = readRsa(der);
++        return new Endpoint(host, port, Base64.encodeToString(encodePkcs1(ne[0], ne[1]), Base64.NO_WRAP),
++                fingerprint(ne[0], ne[1]), name, role);
++    }
++
++    /** The MTProto key fingerprint as the 8 raw little-endian bytes the owner proof is bound to. */
++    public static byte[] fingerprintBytes(Endpoint e) {
++        long value = Long.parseUnsignedLong(e.fingerprintHex, 16);
++        byte[] out = new byte[8];
++        for (int i = 0; i < 8; i++) {
++            out[i] = (byte) (value >>> (8 * i));
++        }
++        return out;
 +    }
 +
 +    private static byte[] decodeKey(String key) {
@@ -2194,25 +2750,65 @@ index 00000000..c6950c9c
 +        }
 +    }
 +
-+    /** Persists the endpoint; the native layer reads it when the process starts. */
-+    public static synchronized void save(Endpoint endpoint) throws java.io.IOException {
++    /** Persists the endpoint for an account slot; the native layer reads it when the process starts. */
++    public static synchronized void save(int account, Endpoint endpoint) throws java.io.IOException {
 +        Properties p = new Properties();
 +        p.setProperty("zg.host", endpoint.host);
 +        p.setProperty("zg.port", String.valueOf(endpoint.port));
 +        p.setProperty("zg.pem", endpoint.pkcs1Base64);
 +        p.setProperty("zg.fingerprint", endpoint.fingerprintHex);
-+        File target = file();
++        p.setProperty("zg.name", endpoint.name);
++        p.setProperty("zg.role", endpoint.role);
++        File target = file(account);
 +        File temp = new File(target.getParentFile(), FILE_NAME + ".tmp");
 +        try (FileOutputStream out = new FileOutputStream(temp)) {
-+            p.store(out, "Zerogram server (do not share)");
++            p.store(out, "Zerogram server (private, do not share)");
 +            out.getFD().sync();
 +        }
 +        if (!temp.renameTo(target)) {
 +            throw new java.io.IOException("cannot store server settings");
 +        }
 +        // Auth keys negotiated with a previous server are useless (and confusing) with this one.
-+        File dir = ApplicationLoader.getFilesDirFixed();
-+        File[] stale = dir.listFiles((d, name) -> name.startsWith("tgnet.dat"));
++        deleteAuthKeys(account);
++    }
++
++    /** Updates only the display label (keeps the auth keys, unlike {@link #save(int, Endpoint)}). */
++    public static synchronized void updateName(int account, String name) {
++        Endpoint current = read(account);
++        if (current == null || current.name.equals(name)) {
++            return;
++        }
++        Properties p = new Properties();
++        File f = file(account);
++        try (FileInputStream in = new FileInputStream(f)) {
++            p.load(in);
++        } catch (Throwable e) {
++            return;
++        }
++        p.setProperty("zg.name", name == null ? "" : name);
++        File temp = new File(f.getParentFile(), FILE_NAME + ".tmp");
++        try (FileOutputStream out = new FileOutputStream(temp)) {
++            p.store(out, "Zerogram server (private, do not share)");
++            out.getFD().sync();
++            //noinspection ResultOfMethodCallIgnored
++            temp.renameTo(f);
++        } catch (Throwable ignore) {
++        }
++    }
++
++    public static synchronized void save(Endpoint endpoint) throws java.io.IOException {
++        save(UserConfig.selectedAccount, endpoint);
++    }
++
++    /** Forgets the server of an account slot (the native layer falls back to a closed loopback port). */
++    public static synchronized void remove(int account) {
++        //noinspection ResultOfMethodCallIgnored
++        file(account).delete();
++        deleteAuthKeys(account);
++    }
++
++    private static void deleteAuthKeys(int account) {
++        File[] stale = dir(account).listFiles((d, name) -> name.startsWith("tgnet.dat"));
 +        if (stale != null) {
 +            for (File s : stale) {
 +                //noinspection ResultOfMethodCallIgnored
@@ -2240,9 +2836,80 @@ index 00000000..c6950c9c
 +        android.os.Process.killProcess(android.os.Process.myPid());
 +    }
 +}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgConnectMessage.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgConnectMessage.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..281088b15a5ed612daf9fd0646116ba46c345adb
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgConnectMessage.java
+@@ -0,0 +1,65 @@
++package org.telegram.zerogram;
++
++import android.util.Base64;
++
++import org.json.JSONObject;
++
++import java.nio.charset.StandardCharsets;
++import java.security.MessageDigest;
++
++import javax.crypto.Cipher;
++import javax.crypto.spec.GCMParameterSpec;
++import javax.crypto.spec.SecretKeySpec;
++
++/**
++ * Opens the "connection message" a server owner gives to users ({@code zg1.<base64url>}). It carries the
++ * server address and public key in an opaque, authenticated text so users never see or type the IP.
++ *
++ * <p>The AES key is a constant shared with the server source (see ZgConnectMessage.cs). It keeps the
++ * address out of sight of ordinary users and makes the text tamper-evident; it is not a secret against
++ * someone who reverse-engineers this app or watches the network.
++ */
++public final class ZgConnectMessage {
++
++    public static final String PREFIX = "zg1.";
++
++    private ZgConnectMessage() {
++    }
++
++    /** Returns the endpoint described by the message, or null when it is not a valid message. */
++    public static ZgConfig.Endpoint open(String message) {
++        try {
++            StringBuilder compact = new StringBuilder();
++            for (int i = 0; message != null && i < message.length(); i++) {
++                char c = message.charAt(i);
++                if (!Character.isWhitespace(c)) {
++                    compact.append(c);
++                }
++            }
++            String text = compact.toString();
++            if (!text.startsWith(PREFIX)) {
++                return null;
++            }
++            byte[] raw = Base64.decode(text.substring(PREFIX.length()), Base64.URL_SAFE | Base64.NO_WRAP);
++            if (raw.length < 12 + 16 + 2) {
++                return null;
++            }
++            byte[] key = MessageDigest.getInstance("SHA-256").digest(
++                    "zerogram-connect-message-v1/shared-obfuscation-key".getBytes(StandardCharsets.UTF_8));
++            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
++            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(128, raw, 0, 12));
++            cipher.updateAAD("zg-connect".getBytes(StandardCharsets.UTF_8));
++            byte[] plain = cipher.doFinal(raw, 12, raw.length - 12);
++            JSONObject json = new JSONObject(new String(plain, StandardCharsets.UTF_8));
++            String host = json.getString("h");
++            int port = json.getInt("p");
++            byte[] der = Base64.decode(json.getString("k"), Base64.DEFAULT);
++            if (host.isEmpty() || port < 1 || port > 65535) {
++                return null;
++            }
++            return ZgConfig.fromKey(host, port, der, json.optString("n", ""), ZgConfig.ROLE_USER);
++        } catch (Throwable e) {
++            return null;
++        }
++    }
++}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgDelivery.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgDelivery.java
 new file mode 100644
-index 00000000..e993f3f5
+index 0000000000000000000000000000000000000000..e993f3f5ade6c119b0faf786ebbecca04cd61373
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgDelivery.java
 @@ -0,0 +1,45 @@
@@ -2291,9 +2958,60 @@ index 00000000..e993f3f5
 +        });
 +    }
 +}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgErrors.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgErrors.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..93b4c5b3e13daf2ee39bb453687a1e3bbd0d0d32
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgErrors.java
+@@ -0,0 +1,45 @@
++package org.telegram.zerogram;
++
++import android.content.Context;
++
++import org.telegram.messenger.R;
++import org.telegram.tgnet.TLRPC;
++
++/** Turns server error codes into user-facing text. */
++final class ZgErrors {
++
++    private ZgErrors() {
++    }
++
++    static String describe(Context context, TLRPC.TL_error error) {
++        String text = error.text == null ? "" : error.text;
++        if (text.startsWith("FLOOD_WAIT_")) {
++            int seconds = 60;
++            try {
++                seconds = Integer.parseInt(text.substring("FLOOD_WAIT_".length()));
++            } catch (NumberFormatException ignore) {
++            }
++            String when = seconds >= 120 ? (seconds / 60) + " min" : seconds + " s";
++            return String.format(context.getString(R.string.ZgErrFlood), when);
++        }
++        switch (text) {
++            case "TOKEN_INVALID":
++                return context.getString(R.string.ZgErrTokenInvalid);
++            case "USER_ALREADY_PARTICIPANT":
++                return context.getString(R.string.ZgErrAlreadyMember);
++            case "USERS_TOO_MUCH":
++                return context.getString(R.string.ZgErrGroupFull);
++            case "OWNER_INVALID":
++                return context.getString(R.string.ZgOwnerBadLogin);
++            case "OWNER_DISABLED":
++                return context.getString(R.string.ZgOwnerDisabled);
++            case "CHAT_ADMIN_REQUIRED":
++                return context.getString(R.string.ZgErrForbidden);
++            default:
++                if (error.code == -1000 || error.code == -2000 || error.code == -3000) {
++                    return context.getString(R.string.ZgErrNetwork);
++                }
++                return String.format(context.getString(R.string.ZgErrGeneric), text.isEmpty() ? String.valueOf(error.code) : text);
++        }
++    }
++}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgFeatures.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgFeatures.java
 new file mode 100644
-index 00000000..34263188
+index 0000000000000000000000000000000000000000..342631887eac2757c5fd33c49f821aeaec41eaca
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgFeatures.java
 @@ -0,0 +1,31 @@
@@ -2328,12 +3046,797 @@ index 00000000..34263188
 +        }
 +    }
 +}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgGroupTokenActivity.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgGroupTokenActivity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4fe255624dca66122daeed4ae83f461a300d6e0b
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgGroupTokenActivity.java
+@@ -0,0 +1,50 @@
++package org.telegram.zerogram;
++
++import org.telegram.messenger.R;
++import org.telegram.tgnet.TLObject;
++
++/** The join token of a group, for the person who created it. */
++public class ZgGroupTokenActivity extends ZgPageFragment {
++
++    private final long chatId;
++
++    public ZgGroupTokenActivity(long chatId) {
++        super();
++        this.chatId = chatId;
++    }
++
++    @Override
++    protected void onCreateContent() {
++        load(false);
++    }
++
++    private void load(boolean rotate) {
++        clear();
++        title(str(R.string.ZgGroupTokenTitle));
++        errorLine();
++        TLObject request;
++        if (rotate) {
++            TL_zg.rotateGroupToken r = new TL_zg.rotateGroupToken();
++            r.chat_id = chatId;
++            request = r;
++        } else {
++            TL_zg.getGroupToken r = new TL_zg.getGroupToken();
++            r.chat_id = chatId;
++            request = r;
++        }
++        call(request, false, (TLObject response) -> {
++            if (!(response instanceof TL_zg.GroupToken)) {
++                return;
++            }
++            TL_zg.GroupToken group = (TL_zg.GroupToken) response;
++            clear();
++            title(str(R.string.ZgGroupTokenTitle));
++            body(str(R.string.ZgGroupTokenHelp));
++            mono(groupDigits(group.token));
++            button(str(R.string.ZgCopy), () -> copy(group.token), false);
++            button(str(R.string.ZgShare), () -> share(str(R.string.ZgGroupTokenLabel) + ":\n" + groupDigits(group.token)), false);
++            button(str(R.string.ZgRotate), () -> load(true), false);
++            errorLine();
++        });
++    }
++}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgJoin.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgJoin.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..337822b8f73d65742282c8c830c3206f42fb6a14
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgJoin.java
+@@ -0,0 +1,46 @@
++package org.telegram.zerogram;
++
++import android.content.Context;
++import android.widget.Toast;
++
++import org.telegram.messenger.AccountInstance;
++import org.telegram.messenger.AndroidUtilities;
++import org.telegram.messenger.ApplicationLoader;
++import org.telegram.messenger.R;
++import org.telegram.tgnet.ConnectionsManager;
++import org.telegram.tgnet.TLRPC;
++
++/** Joins a group with its 32-digit token. */
++public final class ZgJoin {
++
++    public interface Result {
++        void done(TLRPC.TL_error error);
++    }
++
++    private ZgJoin() {
++    }
++
++    public static void join(int account, String token, Result result) {
++        TL_zg.joinGroup request = new TL_zg.joinGroup();
++        request.token = token;
++        ConnectionsManager.getInstance(account).sendRequest(request, (response, error) -> {
++            if (error == null && response instanceof TLRPC.Updates) {
++                AccountInstance.getInstance(account).getMessagesController().processUpdates((TLRPC.Updates) response, false);
++            }
++            AndroidUtilities.runOnUIThread(() -> result.done(error));
++        }, ConnectionsManager.RequestFlagFailOnServerErrors);
++    }
++
++    /** Redeems the token that was typed together with the connection message, right after sign-in. */
++    static void redeemPending(int account) {
++        String token = ZgSession.takePendingJoinToken(account);
++        if (token.isEmpty()) {
++            return;
++        }
++        Context context = ApplicationLoader.applicationContext;
++        join(account, token, error -> {
++            String message = error == null ? context.getString(R.string.ZgJoined) : ZgErrors.describe(context, error);
++            Toast.makeText(context, message, Toast.LENGTH_LONG).show();
++        });
++    }
++}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgJoinGroupActivity.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgJoinGroupActivity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c96a44300f9984ea0fded19a7ea483272f34c65
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgJoinGroupActivity.java
+@@ -0,0 +1,46 @@
++package org.telegram.zerogram;
++
++import android.text.InputType;
++import android.widget.EditText;
++import android.widget.Toast;
++
++import org.telegram.messenger.R;
++
++/** Join a group of the current server with its 32-digit token. */
++public class ZgJoinGroupActivity extends ZgPageFragment {
++
++    private EditText tokenField;
++
++    public ZgJoinGroupActivity() {
++        super();
++    }
++
++    @Override
++    protected void onCreateContent() {
++        title(str(R.string.ZgJoinTitle));
++        body(str(R.string.ZgJoinHelp));
++        tokenField = field(str(R.string.ZgHintGroupTokenRequired), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS, 64);
++        button(str(R.string.ZgPaste), () -> tokenField.setText(paste().trim()), false);
++        errorLine();
++        button(str(R.string.ZgJoinButton), this::onJoin, true);
++    }
++
++    private void onJoin() {
++        String token = digitsOnly(text(tokenField));
++        if (token.length() != 32) {
++            showError(str(R.string.ZgErrTokenInvalid));
++            return;
++        }
++        showError(null);
++        setBusy(true);
++        ZgJoin.join(currentAccount, token, error -> {
++            setBusy(false);
++            if (error != null) {
++                showError(ZgErrors.describe(ctx(), error));
++                return;
++            }
++            Toast.makeText(ctx(), str(R.string.ZgJoined), Toast.LENGTH_LONG).show();
++            finishFragment();
++        });
++    }
++}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgOwner.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgOwner.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..83c79a2c0d8db6c1da4f94c62e1b93c5115873e0
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgOwner.java
+@@ -0,0 +1,98 @@
++package org.telegram.zerogram;
++
++import org.telegram.messenger.AndroidUtilities;
++import org.telegram.tgnet.ConnectionsManager;
++import org.telegram.tgnet.TLObject;
++import org.telegram.tgnet.TLRPC;
++
++import java.io.ByteArrayOutputStream;
++import java.security.MessageDigest;
++import java.security.SecureRandom;
++import java.nio.charset.StandardCharsets;
++
++import javax.crypto.Mac;
++import javax.crypto.spec.SecretKeySpec;
++
++/**
++ * Owner sign-in: a mutual HMAC proof keyed by the owner key derived from the 12 words. The words never leave
++ * the phone.
++ * Both proofs cover the server's RSA key fingerprint, so a server (or middleman) holding another key cannot
++ * produce a valid proof for this endpoint.
++ */
++final class ZgOwner {
++
++    interface Callback {
++        /** error is null on success; otherwise a TL error or a synthetic one (text OWNER_INVALID). */
++        void done(TLRPC.TL_auth_authorization authorization, TLRPC.TL_error error);
++    }
++
++    private ZgOwner() {
++    }
++
++    static void login(int account, ZgConfig.Endpoint endpoint, String mnemonic, Callback callback) {
++        final byte[] clientNonce = new byte[16];
++        new SecureRandom().nextBytes(clientNonce);
++        TL_zg.ownerHello hello = new TL_zg.ownerHello();
++        hello.client_nonce = clientNonce;
++        ConnectionsManager.getInstance(account).sendRequest(hello, (response, error) -> {
++            if (error != null || !(response instanceof TL_zg.OwnerChallenge)) {
++                post(callback, null, error != null ? error : synthetic("OWNER_INVALID"));
++                return;
++            }
++            final TL_zg.OwnerChallenge challenge = (TL_zg.OwnerChallenge) response;
++            // Deriving the key from the 12 words (PBKDF2, 2048 rounds) is slow: keep it off the network thread.
++            new Thread(() -> {
++                try {
++                    String normalized = ZgBip39.normalize(mnemonic);
++                    if (normalized == null) {
++                        post(callback, null, synthetic("OWNER_INVALID"));
++                        return;
++                    }
++                    byte[] key = ZgBip39.ownerKey(normalized);
++                    byte[] fp = ZgConfig.fingerprintBytes(endpoint);
++                    byte[] expected = proof(key, "zg-owner-srv", clientNonce, challenge.server_nonce, fp);
++                    if (!MessageDigest.isEqual(expected, challenge.server_proof)) {
++                        // Wrong words or a server that is not the one holding this key.
++                        post(callback, null, synthetic("OWNER_INVALID"));
++                        return;
++                    }
++                    TL_zg.ownerLogin login = new TL_zg.ownerLogin();
++                    login.client_nonce = clientNonce;
++                    login.server_nonce = challenge.server_nonce;
++                    login.client_proof = proof(key, "zg-owner-cli", clientNonce, challenge.server_nonce, fp);
++                    ConnectionsManager.getInstance(account).sendRequest(login, (r, e) -> {
++                        if (e == null && r instanceof TLRPC.TL_auth_authorization) {
++                            post(callback, (TLRPC.TL_auth_authorization) r, null);
++                        } else {
++                            post(callback, null, e != null ? e : synthetic("OWNER_INVALID"));
++                        }
++                    }, ConnectionsManager.RequestFlagFailOnServerErrors | ConnectionsManager.RequestFlagWithoutLogin);
++                } catch (Throwable t) {
++                    post(callback, null, synthetic("OWNER_INVALID"));
++                }
++            }, "zg-owner-kdf").start();
++        }, ConnectionsManager.RequestFlagFailOnServerErrors | ConnectionsManager.RequestFlagWithoutLogin);
++    }
++
++    private static void post(Callback callback, TLRPC.TL_auth_authorization auth, TLRPC.TL_error error) {
++        AndroidUtilities.runOnUIThread(() -> callback.done(auth, error));
++    }
++
++    private static TLRPC.TL_error synthetic(String text) {
++        TLRPC.TL_error error = new TLRPC.TL_error();
++        error.code = 400;
++        error.text = text;
++        return error;
++    }
++
++    static byte[] proof(byte[] key, String label, byte[] clientNonce, byte[] serverNonce, byte[] fingerprint) throws Exception {
++        ByteArrayOutputStream data = new ByteArrayOutputStream();
++        data.write(label.getBytes(StandardCharsets.US_ASCII));
++        data.write(clientNonce);
++        data.write(serverNonce);
++        data.write(fingerprint);
++        Mac mac = Mac.getInstance("HmacSHA256");
++        mac.init(new SecretKeySpec(key, "HmacSHA256"));
++        return mac.doFinal(data.toByteArray());
++    }
++}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgOwnerLoginActivity.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgOwnerLoginActivity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b5dfb3337d3f08b2faac76673f115bcc79df18f1
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgOwnerLoginActivity.java
+@@ -0,0 +1,86 @@
++package org.telegram.zerogram;
++
++import android.text.InputType;
++import android.widget.EditText;
++
++import org.telegram.messenger.R;
++
++/**
++ * Signs the owner in on a freshly added owner slot. The 12 words were typed on the welcome screen and is
++ * handed over through {@link ZgSession#takePendingOwnerWords}; if that is gone (or the proof failed) the
++ * words can be typed again here.
++ */
++public class ZgOwnerLoginActivity extends ZgPageFragment {
++
++    private EditText wordsField;
++
++    public ZgOwnerLoginActivity() {
++        super();
++    }
++
++    public ZgOwnerLoginActivity(int account) {
++        super(account);
++    }
++
++    @Override
++    protected void onCreateContent() {
++        String words = ZgSession.takePendingOwnerWords(currentAccount);
++        if (words.isEmpty()) {
++            buildForm(null);
++        } else {
++            buildConnecting();
++            start(words);
++        }
++    }
++
++    private void buildConnecting() {
++        clear();
++        title(str(R.string.ZgOwnerConnecting));
++    }
++
++    private void buildForm(String error) {
++        clear();
++        title(str(R.string.ZgOwnerTitle));
++        body(str(R.string.ZgOwnerRetryHelp));
++        wordsField = field(str(R.string.ZgHintOwnerWords), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS, 400);
++        wordsField.setMinLines(2);
++        button(str(R.string.ZgPaste), () -> wordsField.setText(paste().trim()), false);
++        errorLine();
++        button(str(R.string.ZgOwnerConnect), () -> {
++            String words = ZgBip39.normalize(text(wordsField));
++            if (words == null) {
++                showError(str(R.string.ZgOwnerWordsInvalid));
++            } else {
++                start(words);
++            }
++        }, true);
++        button(str(R.string.ZgOwnerOtherServer), () -> ZgSession.abandonAccountAndRestart(currentAccount), false);
++        if (error != null) {
++            showError(error);
++        }
++    }
++
++    private void start(String words) {
++        ZgConfig.Endpoint endpoint = ZgConfig.read(currentAccount);
++        if (endpoint == null) {
++            ZgSession.abandonAccountAndRestart(currentAccount);
++            return;
++        }
++        showError(null);
++        setBusy(true);
++        ZgOwner.login(currentAccount, endpoint, words, (authorization, error) -> {
++            setBusy(false);
++            if (error != null || authorization == null) {
++                String message = error == null ? str(R.string.ZgOwnerBadLogin) : ZgErrors.describe(ctx(), error);
++                buildForm(message);
++                return;
++            }
++            ZgSession.completeLogin(currentAccount, authorization.user, () -> ZgSession.openMain(this));
++        });
++    }
++
++    @Override
++    public boolean onBackPressed(boolean invoked) {
++        return !busy;
++    }
++}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgOwnerPanelActivity.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgOwnerPanelActivity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a0e0f6b57938ef29d596a2637d85ac95a86ab86c
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgOwnerPanelActivity.java
+@@ -0,0 +1,90 @@
++package org.telegram.zerogram;
++
++import android.widget.LinearLayout;
++
++import org.telegram.messenger.AndroidUtilities;
++import org.telegram.messenger.R;
++import org.telegram.tgnet.TLObject;
++import org.telegram.ui.ActionBar.AlertDialog;
++
++/**
++ * Server management for the owner: the encrypted connection message to give to users, and every group with
++ * its random 32-digit join token (a person with the message and a token can join that group).
++ */
++public class ZgOwnerPanelActivity extends ZgPageFragment {
++
++    private TL_zg.OwnerInfo info;
++
++    public ZgOwnerPanelActivity() {
++        super();
++    }
++
++    @Override
++    protected void onCreateContent() {
++        load();
++    }
++
++    private void load() {
++        clear();
++        title(str(R.string.ZgOwnerPanelTitle));
++        errorLine();
++        call(new TL_zg.getOwnerInfo(), false, (TLObject response) -> {
++            if (response instanceof TL_zg.OwnerInfo) {
++                info = (TL_zg.OwnerInfo) response;
++                ZgConfig.updateName(currentAccount, info.server_name);
++                render();
++            }
++        });
++    }
++
++    private void render() {
++        clear();
++        title(str(R.string.ZgOwnerPanelTitle));
++        body(info.server_name);
++
++        body(str(R.string.ZgOwnerMessageTitle)).setTextColor(org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_windowBackgroundWhiteBlackText));
++        body(str(R.string.ZgOwnerMessageHelp));
++        mono(info.connect_message);
++        button(str(R.string.ZgCopy), () -> copy(info.connect_message), false);
++        button(str(R.string.ZgShare), () -> share(info.connect_message), false);
++
++        body("").setPadding(0, AndroidUtilities.dp(10), 0, 0);
++        body(str(R.string.ZgOwnerGroupsTitle)).setTextColor(org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_windowBackgroundWhiteBlackText));
++        body(str(R.string.ZgOwnerGroupsHelp));
++        if (info.groups.isEmpty()) {
++            body(str(R.string.ZgOwnerNoGroups));
++        }
++        for (TL_zg.GroupToken group : info.groups) {
++            addGroup(group);
++        }
++        errorLine();
++        button(str(R.string.ZgRefresh), this::load, false);
++    }
++
++    private void addGroup(TL_zg.GroupToken group) {
++        title(group.title.isEmpty() ? "—" : group.title).setTextSize(18);
++        body(String.format(str(R.string.ZgMembers), group.members));
++        mono(groupDigits(group.token));
++        button(str(R.string.ZgCopy), () -> copy(group.token), false);
++        button(str(R.string.ZgInviteShare), () -> share(
++                str(R.string.ZgInviteHeader) + "\n\n" + str(R.string.ZgOwnerMessageTitle) + ":\n" + info.connect_message
++                        + "\n\n" + str(R.string.ZgGroupTokenLabel) + ":\n" + groupDigits(group.token)), false);
++        button(str(R.string.ZgRotate), () -> confirmRotate(group), false);
++    }
++
++    private void confirmRotate(TL_zg.GroupToken group) {
++        if (getParentActivity() == null) {
++            return;
++        }
++        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
++        builder.setTitle(str(R.string.ZgRotate));
++        builder.setMessage(str(R.string.ZgRotateConfirm));
++        builder.setPositiveButton(str(R.string.OK), (dialog, which) -> {
++            TL_zg.rotateGroupToken request = new TL_zg.rotateGroupToken();
++            request.chat_id = group.chat_id;
++            call(request, false, (TLObject response) -> load());
++        });
++        builder.setNegativeButton(str(R.string.Cancel), null);
++        showDialog(builder.create());
++    }
++}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgPageFragment.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgPageFragment.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..bbb62c8ac9736fd9db8b21a656f0e1a0b87c1a48
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgPageFragment.java
+@@ -0,0 +1,258 @@
++package org.telegram.zerogram;
++
++import android.content.ClipData;
++import android.content.ClipboardManager;
++import android.content.Context;
++import android.content.Intent;
++import android.graphics.Color;
++import android.graphics.Typeface;
++import android.text.InputFilter;
++import android.text.InputType;
++import android.view.View;
++import android.view.ViewGroup;
++import android.widget.Button;
++import android.widget.EditText;
++import android.widget.FrameLayout;
++import android.widget.LinearLayout;
++import android.widget.ScrollView;
++import android.widget.TextView;
++import android.widget.Toast;
++
++import org.telegram.messenger.AndroidUtilities;
++import org.telegram.tgnet.ConnectionsManager;
++import org.telegram.tgnet.TLObject;
++import org.telegram.tgnet.TLRPC;
++import org.telegram.ui.ActionBar.BaseFragment;
++import org.telegram.ui.ActionBar.Theme;
++
++/** A plain scrolling page with the small set of widgets the Zerogram screens need. */
++public abstract class ZgPageFragment extends BaseFragment {
++
++    protected FrameLayout root;
++    protected LinearLayout content;
++    protected TextView errorView;
++    protected Button primaryButton;
++    protected boolean busy;
++
++    protected ZgPageFragment() {
++        super();
++    }
++
++    protected ZgPageFragment(int account) {
++        super();
++        currentAccount = account;
++    }
++
++    /** Called once the views exist and again whenever a screen wants to rebuild itself. */
++    protected abstract void onCreateContent();
++
++    @Override
++    public View createView(Context context) {
++        actionBar.setAddToContainer(false);
++        root = new FrameLayout(context);
++        root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
++        ScrollView scroll = new ScrollView(context);
++        scroll.setFillViewport(true);
++        content = new LinearLayout(context);
++        content.setOrientation(LinearLayout.VERTICAL);
++        int pad = AndroidUtilities.dp(24);
++        content.setPadding(pad, AndroidUtilities.dp(48) + AndroidUtilities.statusBarHeight, pad, pad);
++        scroll.addView(content, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
++        root.addView(scroll, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
++        fragmentView = root;
++        onCreateContent();
++        return fragmentView;
++    }
++
++    protected void clear() {
++        content.removeAllViews();
++        errorView = null;
++        primaryButton = null;
++    }
++
++    protected Context ctx() {
++        return fragmentView.getContext();
++    }
++
++    protected String str(int res) {
++        return ctx().getString(res);
++    }
++
++    protected static String text(EditText e) {
++        return e == null || e.getText() == null ? "" : e.getText().toString().trim();
++    }
++
++    protected TextView title(String text) {
++        TextView t = new TextView(ctx());
++        t.setText(text);
++        t.setTextSize(24);
++        t.setTypeface(Typeface.DEFAULT_BOLD);
++        t.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
++        t.setPadding(0, 0, 0, AndroidUtilities.dp(8));
++        content.addView(t);
++        return t;
++    }
++
++    protected TextView body(String text) {
++        TextView t = new TextView(ctx());
++        t.setText(text);
++        t.setTextSize(15);
++        t.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
++        t.setPadding(0, 0, 0, AndroidUtilities.dp(12));
++        t.setLineSpacing(AndroidUtilities.dp(2), 1f);
++        content.addView(t);
++        return t;
++    }
++
++    protected TextView mono(String text) {
++        TextView t = new TextView(ctx());
++        t.setText(text);
++        t.setTypeface(Typeface.MONOSPACE);
++        t.setTextSize(15);
++        t.setTextIsSelectable(true);
++        t.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
++        t.setPadding(0, AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4));
++        content.addView(t);
++        return t;
++    }
++
++    protected EditText field(String hint, int inputType, int maxLength) {
++        EditText e = new EditText(ctx());
++        e.setHint(hint);
++        e.setInputType(inputType);
++        e.setSingleLine(inputType != (InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE));
++        e.setTextSize(17);
++        e.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
++        e.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
++        if (maxLength > 0) {
++            e.setFilters(new InputFilter[]{new InputFilter.LengthFilter(maxLength)});
++        }
++        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
++        lp.topMargin = AndroidUtilities.dp(8);
++        content.addView(e, lp);
++        return e;
++    }
++
++    protected Button button(String text, Runnable onClick, boolean primary) {
++        Button b = new Button(ctx());
++        b.setText(text);
++        b.setAllCaps(false);
++        b.setTextSize(16);
++        if (primary) {
++            b.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
++            b.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(8),
++                    Theme.getColor(Theme.key_featuredStickers_addButton), Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
++        } else {
++            b.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
++            b.setBackgroundColor(Color.TRANSPARENT);
++        }
++        b.setOnClickListener(v -> {
++            if (!busy) {
++                onClick.run();
++            }
++        });
++        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(primary ? 50 : 44));
++        lp.topMargin = AndroidUtilities.dp(primary ? 20 : 4);
++        content.addView(b, lp);
++        if (primary) {
++            primaryButton = b;
++        }
++        return b;
++    }
++
++    protected void errorLine() {
++        errorView = new TextView(ctx());
++        errorView.setTextColor(Theme.getColor(Theme.key_text_RedRegular));
++        errorView.setTextSize(14);
++        errorView.setPadding(0, AndroidUtilities.dp(10), 0, 0);
++        errorView.setVisibility(View.GONE);
++        content.addView(errorView);
++    }
++
++    protected void showError(String message) {
++        if (errorView == null) {
++            return;
++        }
++        errorView.setText(message);
++        errorView.setVisibility(message == null ? View.GONE : View.VISIBLE);
++    }
++
++    protected void setBusy(boolean value) {
++        busy = value;
++        if (primaryButton != null) {
++            primaryButton.setEnabled(!value);
++            primaryButton.setAlpha(value ? 0.5f : 1f);
++        }
++    }
++
++    protected void copy(String value) {
++        ClipboardManager clipboard = (ClipboardManager) ctx().getSystemService(Context.CLIPBOARD_SERVICE);
++        clipboard.setPrimaryClip(ClipData.newPlainText("zerogram", value));
++        Toast.makeText(ctx(), str(org.telegram.messenger.R.string.ZgCopied), Toast.LENGTH_SHORT).show();
++    }
++
++    protected String paste() {
++        try {
++            ClipboardManager clipboard = (ClipboardManager) ctx().getSystemService(Context.CLIPBOARD_SERVICE);
++            ClipData clip = clipboard.getPrimaryClip();
++            if (clip != null && clip.getItemCount() > 0 && clip.getItemAt(0).getText() != null) {
++                return clip.getItemAt(0).getText().toString();
++            }
++        } catch (Throwable ignore) {
++        }
++        return "";
++    }
++
++    protected void share(String value) {
++        Intent send = new Intent(Intent.ACTION_SEND);
++        send.setType("text/plain");
++        send.putExtra(Intent.EXTRA_TEXT, value);
++        getParentActivity().startActivity(Intent.createChooser(send, null));
++    }
++
++    protected interface Done {
++        void run(TLObject response);
++    }
++
++    /** Sends a request over this page's account; errors are shown in the error line. */
++    protected void call(TLObject request, boolean withoutLogin, Done done) {
++        showError(null);
++        setBusy(true);
++        int flags = ConnectionsManager.RequestFlagFailOnServerErrors | (withoutLogin ? ConnectionsManager.RequestFlagWithoutLogin : 0);
++        ConnectionsManager.getInstance(currentAccount).sendRequest(request, (response, error) ->
++                AndroidUtilities.runOnUIThread(() -> {
++                    setBusy(false);
++                    if (error != null) {
++                        showError(ZgErrors.describe(ctx(), error));
++                    } else {
++                        done.run(response);
++                    }
++                }), flags);
++    }
++
++    protected static String groupDigits(String token) {
++        StringBuilder out = new StringBuilder();
++        for (int i = 0; i < token.length(); i++) {
++            if (i > 0 && i % 4 == 0) {
++                out.append('-');
++            }
++            out.append(token.charAt(i));
++        }
++        return out.toString();
++    }
++
++    protected static String digitsOnly(String value) {
++        StringBuilder out = new StringBuilder();
++        for (int i = 0; i < value.length(); i++) {
++            char c = value.charAt(i);
++            if (c >= '0' && c <= '9') {
++                out.append(c);
++            }
++        }
++        return out.toString();
++    }
++
++    protected static boolean isError(TLRPC.TL_error error, String text) {
++        return error != null && text.equals(error.text);
++    }
++}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgServersActivity.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgServersActivity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..27718cb55cb85ae6fef893b27adedc56e3df5fe2
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgServersActivity.java
+@@ -0,0 +1,63 @@
++package org.telegram.zerogram;
++
++import android.widget.Toast;
++
++import org.telegram.messenger.R;
++import org.telegram.messenger.UserConfig;
++import org.telegram.ui.LaunchActivity;
++
++/** The servers this account list is connected to; each server is its own account slot. */
++public class ZgServersActivity extends ZgPageFragment {
++
++    public ZgServersActivity() {
++        super();
++    }
++
++    @Override
++    protected void onCreateContent() {
++        title(str(R.string.ZgServersTitle));
++        body(str(R.string.ZgServersHelp));
++        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
++            final int account = a;
++            ZgConfig.Endpoint endpoint = ZgConfig.read(a);
++            if (endpoint == null) {
++                continue;
++            }
++            String name = endpoint.name.isEmpty() ? str(R.string.ZgAppName) : endpoint.name;
++            StringBuilder label = new StringBuilder(name);
++            if (endpoint.isOwner()) {
++                label.append(" · ").append(str(R.string.ZgServerOwnerBadge));
++            }
++            boolean signedIn = UserConfig.getInstance(a).isClientActivated();
++            if (a == UserConfig.selectedAccount && signedIn) {
++                label.append(" ✓");
++            } else if (!signedIn) {
++                label.append(" · ").append(str(R.string.ZgServerNotSignedIn));
++            }
++            button(label.toString(), () -> open(account), true);
++        }
++        button(str(R.string.ZgServersAdd), this::addServer, false);
++    }
++
++    private void open(int account) {
++        if (account == UserConfig.selectedAccount) {
++            finishFragment();
++            return;
++        }
++        if (UserConfig.getInstance(account).isClientActivated() && getParentActivity() instanceof LaunchActivity) {
++            ((LaunchActivity) getParentActivity()).switchToAccount(account, true);
++            return;
++        }
++        ZgSession.selectAccountForNextStart(account);
++        ZgConfig.restart(ctx().getApplicationContext());
++    }
++
++    private void addServer() {
++        int free = ZgSession.firstFreeAccount();
++        if (free < 0) {
++            Toast.makeText(ctx(), str(R.string.ZgNoFreeSlot), Toast.LENGTH_LONG).show();
++            return;
++        }
++        presentFragment(new ZgWelcomeActivity(free));
++    }
++}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgSession.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgSession.java
 new file mode 100644
-index 00000000..295bd0ac
+index 0000000000000000000000000000000000000000..dd95d1505d756e4b0df909952c9e189e61a66d2c
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgSession.java
-@@ -0,0 +1,95 @@
+@@ -0,0 +1,184 @@
 +package org.telegram.zerogram;
 +
 +import android.content.Context;
@@ -2367,6 +3870,8 @@ index 00000000..295bd0ac
 +
 +    private static final String PREFS = "zerogram";
 +    private static final String KEY_DB_OWNER = "db_owner_user_id";
++    private static final String KEY_PENDING_TOKEN = "pending_join_token_";
++    private static final String KEY_PENDING_OWNER = "pending_owner_words_";
 +
 +    private ZgSession() {
 +    }
@@ -2375,12 +3880,71 @@ index 00000000..295bd0ac
 +        return ApplicationLoader.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
 +    }
 +
-+    public static long databaseOwner() {
-+        return prefs().getLong(KEY_DB_OWNER, 0);
++    public static long databaseOwner(int account) {
++        return prefs().getLong(KEY_DB_OWNER + (account == 0 ? "" : "_" + account), 0);
 +    }
 +
-+    public static void forgetDatabaseOwner() {
-+        prefs().edit().putLong(KEY_DB_OWNER, 0).commit();
++    public static void forgetDatabaseOwner(int account) {
++        prefs().edit().putLong(KEY_DB_OWNER + (account == 0 ? "" : "_" + account), 0).commit();
++    }
++
++    // ------------------------------------------------------------------ server slots
++
++    /** Which account slot is the active one the next time the app starts. */
++    public static void selectAccountForNextStart(int account) {
++        UserConfig.selectedAccount = account;
++        ApplicationLoader.applicationContext.getSharedPreferences("userconfing", Context.MODE_PRIVATE)
++                .edit().putInt("selectedAccount", account).commit();
++    }
++
++    /** First slot without a server (and not signed in), or -1 when all slots are used. */
++    public static int firstFreeAccount() {
++        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
++            if (!UserConfig.getInstance(a).isClientActivated() && !ZgConfig.isConfigured(a)) {
++                return a;
++            }
++        }
++        return -1;
++    }
++
++    /**
++     * Stores the server of an account slot and restarts the app so the native networking layer (which reads
++     * the address and key once per process) connects to it. The slot becomes the active one.
++     */
++    public static void addServerAndRestart(int account, ZgConfig.Endpoint endpoint) throws java.io.IOException {
++        ZgConfig.save(account, endpoint);
++        forgetDatabaseOwner(account);
++        selectAccountForNextStart(account);
++        ZgConfig.restart(ApplicationLoader.applicationContext);
++    }
++
++    /** Join token typed together with the connection message; redeemed right after the first sign-in. */
++    public static void setPendingJoinToken(int account, String token) {
++        prefs().edit().putString(KEY_PENDING_TOKEN + account, token == null ? "" : token).commit();
++    }
++
++    public static String takePendingJoinToken(int account) {
++        String token = prefs().getString(KEY_PENDING_TOKEN + account, "");
++        if (!token.isEmpty()) {
++            prefs().edit().remove(KEY_PENDING_TOKEN + account).commit();
++        }
++        return token;
++    }
++
++    /**
++     * The owner password has to survive the restart that points the app at the new server. It is kept in
++     * app-private storage only until the sign-in that follows the restart takes (and deletes) it.
++     */
++    public static void setPendingOwnerWords(int account, String password) {
++        prefs().edit().putString(KEY_PENDING_OWNER + account, password).commit();
++    }
++
++    public static String takePendingOwnerWords(int account) {
++        String password = prefs().getString(KEY_PENDING_OWNER + account, "");
++        if (!password.isEmpty()) {
++            prefs().edit().remove(KEY_PENDING_OWNER + account).commit();
++        }
++        return password;
 +    }
 +
 +    /** Called once per process after the account objects exist (see ApplicationLoader). */
@@ -2391,7 +3955,7 @@ index 00000000..295bd0ac
 +    }
 +
 +    public static void completeLogin(int account, TLRPC.User user, Runnable onDone) {
-+        final boolean sameOwner = databaseOwner() == user.id;
++        final boolean sameOwner = databaseOwner(account) == user.id;
 +        MessagesController controller = MessagesController.getInstance(account);
 +        controller.cleanup();
 +        ConnectionsManager.getInstance(account).setUserId(user.id);
@@ -2408,7 +3972,7 @@ index 00000000..295bd0ac
 +        } else {
 +            MessagesStorage.getInstance(account).cleanup(true);
 +        }
-+        prefs().edit().putLong(KEY_DB_OWNER, user.id).commit();
++        prefs().edit().putLong(KEY_DB_OWNER + (account == 0 ? "" : "_" + account), user.id).commit();
 +        ArrayList<TLRPC.User> users = new ArrayList<>();
 +        users.add(user);
 +        MessagesStorage.getInstance(account).putUsersAndChats(users, null, true, true);
@@ -2417,7 +3981,35 @@ index 00000000..295bd0ac
 +        controller.loadAppConfig();
 +        ZgAck.flush(account);
 +        ZgDelivery.sync(account);
++        ZgJoin.redeemPending(account);
 +        onDone.run();
++    }
++
++    /**
++     * Gives up on an account slot that never signed in (wrong server, cancelled): forgets its server and
++     * restarts into another account, or into the welcome screen when none exists.
++     */
++    public static void abandonAccountAndRestart(int account) {
++        ZgConfig.remove(account);
++        forgetDatabaseOwner(account);
++        int target = 0;
++        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
++            if (a != account && UserConfig.getInstance(a).isClientActivated()) {
++                target = a;
++                break;
++            }
++        }
++        selectAccountForNextStart(target);
++        ZgConfig.restart(ApplicationLoader.applicationContext);
++    }
++
++    public static boolean hasOtherSignedInAccount(int account) {
++        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
++            if (a != account && UserConfig.getInstance(a).isClientActivated()) {
++                return true;
++            }
++        }
++        return false;
 +    }
 +
 +    public static void openMain(BaseFragment from) {
@@ -2429,12 +4021,2780 @@ index 00000000..295bd0ac
 +        NotificationCenter.getInstance(from.getCurrentAccount()).postNotificationName(NotificationCenter.mainUserInfoChanged);
 +    }
 +}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgUpdateActivity.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgUpdateActivity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..168e791980c2b7c47f169e10bfee452ba5f3989d
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgUpdateActivity.java
+@@ -0,0 +1,62 @@
++package org.telegram.zerogram;
++
++import android.widget.TextView;
++
++import org.telegram.messenger.R;
++
++/** Shows the installed and the latest version and updates with one tap. */
++public class ZgUpdateActivity extends ZgPageFragment {
++
++    private TextView status;
++
++    @Override
++    protected void onCreateContent() {
++        render();
++        if (ZgUpdater.available() == null) {
++            // Opened from settings: look again right now.
++            status.setText(str(R.string.ZgUpdateChecking));
++            ZgUpdater.check(true, () -> {
++                if (fragmentView != null) {
++                    render();
++                }
++            });
++        }
++    }
++
++    private void render() {
++        clear();
++        title(str(R.string.ZgUpdateTitle));
++        body(String.format(str(R.string.ZgUpdateInstalled), ZgUpdater.installedVersion()));
++        final ZgUpdater.Release release = ZgUpdater.available();
++        status = body(release == null ? str(R.string.ZgUpdateUpToDate) : String.format(str(R.string.ZgUpdateAvailableText), release.version, ZgUpdater.installedVersion()));
++        if (release != null) {
++            if (release.notes != null && !release.notes.trim().isEmpty()) {
++                body(release.notes.trim());
++            }
++            errorLine();
++            button(str(R.string.ZgUpdateNow), () -> startUpdate(release), true);
++        } else {
++            errorLine();
++            button(str(R.string.ZgUpdateCheckAgain), () -> ZgUpdater.check(true, this::render), false);
++        }
++        body(str(R.string.ZgUpdateNote));
++    }
++
++    private void startUpdate(ZgUpdater.Release release) {
++        if (getParentActivity() == null) {
++            return;
++        }
++        showError(null);
++        setBusy(true);
++        ZgUpdater.downloadAndInstall(getParentActivity(), release,
++                (text, percent) -> status.setText(text + " " + percent + "%"),
++                error -> {
++                    setBusy(false);
++                    if (error != null) {
++                        showError(error);
++                    } else {
++                        status.setText(str(R.string.ZgUpdateInstalling));
++                    }
++                });
++    }
++}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgUpdater.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgUpdater.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1be42b82789491f8eff7f1073b2544fec784ff29
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgUpdater.java
+@@ -0,0 +1,400 @@
++package org.telegram.zerogram;
++
++import android.app.Activity;
++import android.content.Context;
++import android.content.Intent;
++import android.content.SharedPreferences;
++import android.content.pm.PackageInfo;
++import android.content.pm.PackageManager;
++import android.content.pm.Signature;
++import android.net.Uri;
++import android.os.Build;
++import android.provider.Settings;
++
++import androidx.core.content.FileProvider;
++
++import org.json.JSONArray;
++import org.json.JSONObject;
++import org.telegram.messenger.AndroidUtilities;
++import org.telegram.messenger.ApplicationLoader;
++import org.telegram.messenger.R;
++import org.telegram.ui.ActionBar.AlertDialog;
++import org.telegram.ui.LaunchActivity;
++
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.InputStream;
++import java.net.HttpURLConnection;
++import java.net.URL;
++import java.nio.charset.StandardCharsets;
++import java.security.MessageDigest;
++import java.util.HashSet;
++import java.util.Locale;
++import java.util.Set;
++
++/**
++ * Update check against the GitHub releases of the public Zerogram repository, and a one-tap update.
++ *
++ * <p>This is strictly optional: messaging never depends on it. The check runs in the background, fails
++ * silently when GitHub cannot be reached (for example inside a closed network) and never blocks sign-in.
++ *
++ * <p>Before the installer is started the downloaded APK is verified: its SHA-256 must match the digest GitHub
++ * publishes for the asset (or the {@code .sha256} asset next to it), it must be this app's package and it
++ * must carry the same signing certificate as the installed app. Android itself refuses an update signed
++ * with a different key.
++ */
++public final class ZgUpdater {
++
++    public static final String REPOSITORY = "mhrsdev/zgram";
++    private static final String API_URL = "https://api.github.com/repos/" + REPOSITORY + "/releases/latest";
++    private static final long CHECK_INTERVAL_MS = 6L * 60 * 60 * 1000;
++
++    public static final class Release {
++        public String tag;
++        public String version;
++        public String notes;
++        public String apkUrl;
++        public String apkName;
++        public long apkSize;
++        /** Lower-case hex; may be empty when the release publishes no digest (then it is not installable). */
++        public String sha256;
++    }
++
++    public interface Progress {
++        void update(String stageText, int percent);
++    }
++
++    public interface Finished {
++        /** error is null when the installer was started. */
++        void done(String error);
++    }
++
++    private static volatile Release available;
++    private static volatile boolean checking;
++    private static String promptedTag = "";
++
++    private ZgUpdater() {
++    }
++
++    public static Release available() {
++        return available;
++    }
++
++    private static SharedPreferences prefs() {
++        return ApplicationLoader.applicationContext.getSharedPreferences("zerogram_update", Context.MODE_PRIVATE);
++    }
++
++    /** Called once per process start; the first check is delayed so it never competes with sign-in. */
++    public static void scheduleCheck() {
++        AndroidUtilities.runOnUIThread(() -> check(false, null), 20_000);
++    }
++
++    public static void check(boolean force, Runnable onFinished) {
++        if (checking) {
++            return;
++        }
++        long last = prefs().getLong("last_check", 0);
++        if (!force && System.currentTimeMillis() - last < CHECK_INTERVAL_MS && available == null) {
++            return;
++        }
++        checking = true;
++        new Thread(() -> {
++            Release found = null;
++            boolean ok = false;
++            try {
++                found = fetchLatest();
++                ok = true;
++            } catch (Throwable ignore) {
++                // Offline / GitHub unreachable / rate limited: stay silent.
++            }
++            final Release result = found;
++            final boolean succeeded = ok;
++            AndroidUtilities.runOnUIThread(() -> {
++                checking = false;
++                if (succeeded) {
++                    prefs().edit().putLong("last_check", System.currentTimeMillis()).apply();
++                    available = result != null && isNewer(result.version, installedVersion()) ? result : null;
++                    if (available != null && LaunchActivity.instance != null) {
++                        maybePrompt(LaunchActivity.instance);
++                    }
++                }
++                if (onFinished != null) {
++                    onFinished.run();
++                }
++            });
++        }, "zg-update-check").start();
++    }
++
++    public static String installedVersion() {
++        try {
++            Context c = ApplicationLoader.applicationContext;
++            return c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
++        } catch (Throwable e) {
++            return "0";
++        }
++    }
++
++    /** Shows the "new version" dialog once per release, from the foreground activity. */
++    public static void maybePrompt(LaunchActivity activity) {
++        Release release = available;
++        if (release == null || release.tag.equals(promptedTag) || activity.isFinishing()) {
++            return;
++        }
++        promptedTag = release.tag;
++        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
++        builder.setTitle(activity.getString(R.string.ZgUpdateAvailable));
++        builder.setMessage(String.format(activity.getString(R.string.ZgUpdateAvailableText), release.version, installedVersion()));
++        builder.setPositiveButton(activity.getString(R.string.ZgUpdateNow), (dialog, which) -> activity.presentFragment(new ZgUpdateActivity()));
++        builder.setNegativeButton(activity.getString(R.string.ZgUpdateLater), null);
++        builder.show();
++    }
++
++    // ------------------------------------------------------------------ check
++
++    private static Release fetchLatest() throws Exception {
++        JSONObject json = new JSONObject(httpGetText(API_URL));
++        Release release = new Release();
++        release.tag = json.optString("tag_name", "");
++        release.version = release.tag.replaceFirst("^[vV]", "");
++        release.notes = json.optString("body", "");
++        if (release.tag.isEmpty() || json.optBoolean("draft", false) || json.optBoolean("prerelease", false)) {
++            return null;
++        }
++        JSONArray assets = json.optJSONArray("assets");
++        if (assets == null) {
++            return null;
++        }
++        JSONObject apk = null;
++        String abi = Build.SUPPORTED_ABIS != null && Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "";
++        for (int i = 0; i < assets.length(); i++) {
++            JSONObject asset = assets.getJSONObject(i);
++            String name = asset.optString("name", "");
++            if (!name.toLowerCase(Locale.ROOT).endsWith(".apk")) {
++                continue;
++            }
++            if (name.contains(abi)) {
++                apk = asset;
++                break;
++            }
++            if (apk == null && !name.contains("arm") && !name.contains("x86")) {
++                apk = asset; // universal build
++            }
++        }
++        if (apk == null) {
++            return null;
++        }
++        release.apkName = apk.getString("name");
++        release.apkUrl = apk.getString("browser_download_url");
++        release.apkSize = apk.optLong("size", 0);
++        String digest = apk.optString("digest", "");
++        if (digest.startsWith("sha256:")) {
++            release.sha256 = digest.substring(7).toLowerCase(Locale.ROOT);
++        } else {
++            release.sha256 = "";
++            for (int i = 0; i < assets.length(); i++) {
++                JSONObject asset = assets.getJSONObject(i);
++                if ((release.apkName + ".sha256").equals(asset.optString("name"))) {
++                    String line = httpGetText(asset.getString("browser_download_url")).trim();
++                    String first = line.split("\\s+")[0].toLowerCase(Locale.ROOT);
++                    if (first.matches("[0-9a-f]{64}")) {
++                        release.sha256 = first;
++                    }
++                }
++            }
++        }
++        return release;
++    }
++
++    /** True when {@code candidate} (e.g. "1.2.0") is newer than {@code current}. */
++    static boolean isNewer(String candidate, String current) {
++        int[] a = numbers(candidate);
++        int[] b = numbers(current);
++        for (int i = 0; i < Math.max(a.length, b.length); i++) {
++            int x = i < a.length ? a[i] : 0;
++            int y = i < b.length ? b[i] : 0;
++            if (x != y) {
++                return x > y;
++            }
++        }
++        return false;
++    }
++
++    private static int[] numbers(String version) {
++        String[] parts = (version == null ? "" : version).split("[^0-9]+");
++        int count = 0;
++        int[] out = new int[parts.length];
++        for (String part : parts) {
++            if (!part.isEmpty()) {
++                try {
++                    out[count++] = Integer.parseInt(part);
++                } catch (NumberFormatException ignore) {
++                }
++            }
++        }
++        int[] trimmed = new int[count];
++        System.arraycopy(out, 0, trimmed, 0, count);
++        return trimmed;
++    }
++
++    private static String httpGetText(String url) throws Exception {
++        HttpURLConnection connection = open(url);
++        try (InputStream in = connection.getInputStream()) {
++            ByteArrayOutputStream out = new ByteArrayOutputStream();
++            byte[] buffer = new byte[4096];
++            int n;
++            while ((n = in.read(buffer)) > 0 && out.size() < 2_000_000) {
++                out.write(buffer, 0, n);
++            }
++            return new String(out.toByteArray(), StandardCharsets.UTF_8);
++        } finally {
++            connection.disconnect();
++        }
++    }
++
++    private static HttpURLConnection open(String url) throws Exception {
++        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
++        connection.setConnectTimeout(10_000);
++        connection.setReadTimeout(20_000);
++        connection.setInstanceFollowRedirects(true);
++        connection.setRequestProperty("Accept", "application/vnd.github+json");
++        connection.setRequestProperty("User-Agent", "Zerogram-Android");
++        return connection;
++    }
++
++    // ------------------------------------------------------------------ download + install
++
++    /** Downloads, verifies and hands the APK to the system installer. */
++    public static void downloadAndInstall(Activity activity, Release release, Progress progress, Finished finished) {
++        if (release.sha256 == null || release.sha256.isEmpty()) {
++            finished.done(activity.getString(R.string.ZgUpdateNoDigest));
++            return;
++        }
++        new Thread(() -> {
++            String error = null;
++            File apk = null;
++            try {
++                File dir = new File(ApplicationLoader.getFilesDirFixed(), "cache/zg-update");
++                //noinspection ResultOfMethodCallIgnored
++                dir.mkdirs();
++                File[] old = dir.listFiles();
++                if (old != null) {
++                    for (File f : old) {
++                        //noinspection ResultOfMethodCallIgnored
++                        f.delete();
++                    }
++                }
++                apk = new File(dir, "update.apk");
++                MessageDigest sha = MessageDigest.getInstance("SHA-256");
++                HttpURLConnection connection = open(release.apkUrl);
++                connection.setRequestProperty("Accept", "application/octet-stream");
++                long total = connection.getContentLengthLong() > 0 ? connection.getContentLengthLong() : release.apkSize;
++                try (InputStream in = connection.getInputStream(); FileOutputStream out = new FileOutputStream(apk)) {
++                    byte[] buffer = new byte[64 * 1024];
++                    long done = 0;
++                    int lastPercent = -1;
++                    int n;
++                    while ((n = in.read(buffer)) > 0) {
++                        out.write(buffer, 0, n);
++                        sha.update(buffer, 0, n);
++                        done += n;
++                        int percent = total > 0 ? (int) (done * 100 / total) : 0;
++                        if (percent != lastPercent) {
++                            lastPercent = percent;
++                            final int p = percent;
++                            AndroidUtilities.runOnUIThread(() -> progress.update(activity.getString(R.string.ZgUpdateDownloading), p));
++                        }
++                    }
++                    out.getFD().sync();
++                } finally {
++                    connection.disconnect();
++                }
++                if (!hex(sha.digest()).equalsIgnoreCase(release.sha256)) {
++                    error = activity.getString(R.string.ZgUpdateBadDigest);
++                } else if (!sameSigner(activity, apk)) {
++                    error = activity.getString(R.string.ZgUpdateBadSigner);
++                }
++            } catch (Throwable t) {
++                error = activity.getString(R.string.ZgUpdateDownloadFailed);
++            }
++            final String failure = error;
++            final File file = apk;
++            AndroidUtilities.runOnUIThread(() -> {
++                if (failure != null) {
++                    if (file != null) {
++                        //noinspection ResultOfMethodCallIgnored
++                        file.delete();
++                    }
++                    finished.done(failure);
++                    return;
++                }
++                finished.done(install(activity, file));
++            });
++        }, "zg-update-download").start();
++    }
++
++    private static String install(Activity activity, File apk) {
++        try {
++            if (Build.VERSION.SDK_INT >= 26 && !activity.getPackageManager().canRequestPackageInstalls()) {
++                Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + activity.getPackageName()));
++                activity.startActivity(settings);
++                return activity.getString(R.string.ZgUpdateAllowInstall);
++            }
++            Uri uri = FileProvider.getUriForFile(activity, activity.getPackageName() + ".provider", apk);
++            Intent intent = new Intent(Intent.ACTION_VIEW);
++            intent.setDataAndType(uri, "application/vnd.android.package-archive");
++            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
++            activity.startActivity(intent);
++            return null;
++        } catch (Throwable t) {
++            return activity.getString(R.string.ZgUpdateInstallFailed);
++        }
++    }
++
++    private static boolean sameSigner(Context context, File apk) {
++        try {
++            PackageManager pm = context.getPackageManager();
++            Set<String> mine;
++            Set<String> theirs;
++            if (Build.VERSION.SDK_INT >= 28) {
++                PackageInfo installed = pm.getPackageInfo(context.getPackageName(), PackageManager.GET_SIGNING_CERTIFICATES);
++                PackageInfo archive = pm.getPackageArchiveInfo(apk.getAbsolutePath(), PackageManager.GET_SIGNING_CERTIFICATES);
++                if (archive == null || !context.getPackageName().equals(archive.packageName)
++                        || installed.signingInfo == null || archive.signingInfo == null) {
++                    return false;
++                }
++                mine = fingerprints(installed.signingInfo.getApkContentsSigners());
++                theirs = fingerprints(archive.signingInfo.getApkContentsSigners());
++            } else {
++                PackageInfo installed = pm.getPackageInfo(context.getPackageName(), PackageManager.GET_SIGNATURES);
++                PackageInfo archive = pm.getPackageArchiveInfo(apk.getAbsolutePath(), PackageManager.GET_SIGNATURES);
++                if (archive == null || !context.getPackageName().equals(archive.packageName)) {
++                    return false;
++                }
++                mine = fingerprints(installed.signatures);
++                theirs = fingerprints(archive.signatures);
++            }
++            return !mine.isEmpty() && mine.equals(theirs);
++        } catch (Throwable t) {
++            return false;
++        }
++    }
++
++    private static Set<String> fingerprints(Signature[] signatures) throws Exception {
++        Set<String> out = new HashSet<>();
++        if (signatures != null) {
++            for (Signature s : signatures) {
++                out.add(hex(MessageDigest.getInstance("SHA-256").digest(s.toByteArray())));
++            }
++        }
++        return out;
++    }
++
++    private static String hex(byte[] data) {
++        StringBuilder sb = new StringBuilder();
++        for (byte b : data) {
++            sb.append(String.format(Locale.ROOT, "%02x", b));
++        }
++        return sb.toString();
++    }
++}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgWelcomeActivity.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgWelcomeActivity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0dab1be48060e21e7fb2842a2e4dee41c44c16f2
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgWelcomeActivity.java
+@@ -0,0 +1,234 @@
++package org.telegram.zerogram;
++
++import android.text.InputType;
++import android.widget.EditText;
++import android.widget.Toast;
++
++import org.json.JSONObject;
++import org.telegram.messenger.AndroidUtilities;
++import org.telegram.messenger.R;
++import org.telegram.messenger.UserConfig;
++
++import java.io.ByteArrayOutputStream;
++import java.io.InputStream;
++import java.nio.charset.StandardCharsets;
++
++/**
++ * First screen: "sign in as a user" (join a server with the owner's encrypted connection message and,
++ * optionally, a group token) or "sign in as a server owner" (server IP + the owner's 12 words). Also used to
++ * add another server later; each server occupies its own account slot.
++ */
++public class ZgWelcomeActivity extends ZgPageFragment {
++
++    private static final int PAGE_HOME = 0;
++    private static final int PAGE_USER = 1;
++    private static final int PAGE_OWNER = 2;
++
++    private int page = PAGE_HOME;
++    private EditText messageField;
++    private EditText tokenField;
++    private EditText ipField;
++    private EditText wordsField;
++
++    public ZgWelcomeActivity() {
++        super();
++    }
++
++    public ZgWelcomeActivity(int account) {
++        super(account);
++    }
++
++    @Override
++    protected void onCreateContent() {
++        show(PAGE_HOME);
++    }
++
++    @Override
++    public boolean onBackPressed(boolean invoked) {
++        if (busy) {
++            return false;
++        }
++        if (page != PAGE_HOME) {
++            show(PAGE_HOME);
++            return false;
++        }
++        return true;
++    }
++
++    private void show(int newPage) {
++        page = newPage;
++        clear();
++        switch (newPage) {
++            case PAGE_USER:
++                buildUser();
++                break;
++            case PAGE_OWNER:
++                buildOwner();
++                break;
++            default:
++                buildHome();
++        }
++    }
++
++    private void buildHome() {
++        title(str(R.string.ZgWelcomeTitle));
++        body(str(R.string.ZgWelcomeSubtitle));
++        button(str(R.string.ZgRoleUser), () -> show(PAGE_USER), true);
++        body(str(R.string.ZgRoleUserHint)).setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(10));
++        button(str(R.string.ZgRoleOwner), () -> show(PAGE_OWNER), true);
++        body(str(R.string.ZgRoleOwnerHint)).setPadding(0, AndroidUtilities.dp(6), 0, 0);
++        if (ZgSession.hasOtherSignedInAccount(currentAccount) || isPresentedOverApp()) {
++            button(str(R.string.ZgCancelAddServer), this::finishFragment, false);
++        }
++    }
++
++    private boolean isPresentedOverApp() {
++        return parentLayout != null && parentLayout.getFragmentStack().size() > 1;
++    }
++
++    // ------------------------------------------------------------------ user
++
++    private void buildUser() {
++        title(str(R.string.ZgUserJoinTitle));
++        body(str(R.string.ZgUserJoinHelp));
++        messageField = field(str(R.string.ZgHintConnectMessage), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS, 4000);
++        messageField.setMinLines(3);
++        button(str(R.string.ZgPaste), () -> messageField.setText(paste().trim()), false);
++        tokenField = field(str(R.string.ZgHintGroupToken), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS, 64);
++        errorLine();
++        button(str(R.string.ZgContinue), this::onUserContinue, true);
++        button(str(R.string.ZgBack), () -> show(PAGE_HOME), false);
++    }
++
++    private void onUserContinue() {
++        ZgConfig.Endpoint endpoint = ZgConnectMessage.open(text(messageField));
++        if (endpoint == null) {
++            showError(str(R.string.ZgConnectMessageInvalid));
++            return;
++        }
++        String token = digitsOnly(text(tokenField));
++        if (!token.isEmpty() && token.length() != 32) {
++            showError(str(R.string.ZgErrTokenInvalid));
++            return;
++        }
++        if (alreadyAdded(endpoint)) {
++            showError(str(R.string.ZgServerAlready));
++            return;
++        }
++        try {
++            ZgSession.setPendingJoinToken(currentAccount, token);
++            ZgSession.addServerAndRestart(currentAccount, endpoint);
++        } catch (Exception e) {
++            showError(str(R.string.ZgConnectMessageInvalid));
++        }
++    }
++
++    private boolean alreadyAdded(ZgConfig.Endpoint endpoint) {
++        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
++            ZgConfig.Endpoint other = ZgConfig.read(a);
++            if (other != null && other.role.equals(endpoint.role) && endpoint.sameServer(other)) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    // ------------------------------------------------------------------ owner
++
++    private void buildOwner() {
++        title(str(R.string.ZgOwnerTitle));
++        body(str(R.string.ZgOwnerHelp));
++        ipField = field(str(R.string.ZgHintServerIp), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS, 300);
++        wordsField = field(str(R.string.ZgHintOwnerWords), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS, 400);
++        wordsField.setMinLines(2);
++        button(str(R.string.ZgPaste), () -> wordsField.setText(paste().trim()), false);
++        errorLine();
++        button(str(R.string.ZgOwnerConnect), this::onOwnerConnect, true);
++        button(str(R.string.ZgBack), () -> show(PAGE_HOME), false);
++    }
++
++    private void onOwnerConnect() {
++        final String address = text(ipField);
++        if (address.isEmpty() || text(wordsField).isEmpty()) {
++            showError(str(R.string.ZgErrFill));
++            return;
++        }
++        // Checked on the phone first: unknown words or a wrong checksum never reach the network.
++        final String words = ZgBip39.normalize(text(wordsField));
++        if (words == null) {
++            showError(str(R.string.ZgOwnerWordsInvalid));
++            return;
++        }
++        final Object[] hostPort;
++        try {
++            hostPort = ZgConfig.parseAddress(address);
++        } catch (Exception e) {
++            showError(str(R.string.ZgOwnerKeyFailed));
++            return;
++        }
++        final String host = (String) hostPort[0];
++        final int port = (Integer) hostPort[1];
++        showError(null);
++        setBusy(true);
++        new Thread(() -> {
++            ZgConfig.Endpoint endpoint = null;
++            try {
++                endpoint = fetchKey(host, port);
++            } catch (Throwable ignore) {
++            }
++            final ZgConfig.Endpoint found = endpoint;
++            AndroidUtilities.runOnUIThread(() -> {
++                setBusy(false);
++                if (found == null) {
++                    showError(str(R.string.ZgOwnerKeyFailed));
++                    return;
++                }
++                if (alreadyAdded(found)) {
++                    showError(str(R.string.ZgServerAlready));
++                    return;
++                }
++                try {
++                    ZgSession.setPendingOwnerWords(currentAccount, words);
++                    ZgSession.addServerAndRestart(currentAccount, found);
++                } catch (Exception e) {
++                    showError(str(R.string.ZgOwnerKeyFailed));
++                }
++            });
++        }, "zg-owner-bootstrap").start();
++    }
++
++    /**
++     * The server publishes its (public) RSA key on the MTProto port + 1. Nothing is trusted from this
++     * channel alone: the owner proof is bound to the key fingerprint and to the 12 words. A raw socket is
++     * used because Android forbids plain-HTTP requests through its HTTP stack.
++     */
++    private static ZgConfig.Endpoint fetchKey(String host, int port) throws Exception {
++        try (java.net.Socket socket = new java.net.Socket()) {
++            socket.connect(new java.net.InetSocketAddress(host, port + 1), 8000);
++            socket.setSoTimeout(8000);
++            java.io.OutputStream request = socket.getOutputStream();
++            request.write(("GET /zg/key HTTP/1.0\r\nHost: " + host + "\r\nConnection: close\r\n\r\n")
++                    .getBytes(StandardCharsets.US_ASCII));
++            request.flush();
++            ByteArrayOutputStream out = new ByteArrayOutputStream();
++            InputStream in = socket.getInputStream();
++            byte[] buffer = new byte[2048];
++            int n;
++            while ((n = in.read(buffer)) > 0 && out.size() < 16384) {
++                out.write(buffer, 0, n);
++            }
++            String response = new String(out.toByteArray(), StandardCharsets.UTF_8);
++            int split = response.indexOf("\r\n\r\n");
++            if (split < 0 || !response.startsWith("HTTP/") || !response.substring(0, Math.min(response.length(), 20)).contains(" 200")) {
++                return null;
++            }
++            JSONObject json = new JSONObject(response.substring(split + 4));
++            byte[] der = android.util.Base64.decode(json.getString("key"), android.util.Base64.DEFAULT);
++            ZgConfig.Endpoint endpoint = ZgConfig.fromKey(host, port, der, "", ZgConfig.ROLE_OWNER);
++            if (!endpoint.fingerprintHex.equalsIgnoreCase(json.optString("fp", ""))) {
++                return null;
++            }
++            return endpoint;
++        }
++    }
++}
+diff --git a/TMessagesProj/src/main/res/raw/zg_bip39_english.txt b/TMessagesProj/src/main/res/raw/zg_bip39_english.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..942040ed50f7205cafc465496229128ba4f78e75
+--- /dev/null
++++ b/TMessagesProj/src/main/res/raw/zg_bip39_english.txt
+@@ -0,0 +1,2048 @@
++abandon
++ability
++able
++about
++above
++absent
++absorb
++abstract
++absurd
++abuse
++access
++accident
++account
++accuse
++achieve
++acid
++acoustic
++acquire
++across
++act
++action
++actor
++actress
++actual
++adapt
++add
++addict
++address
++adjust
++admit
++adult
++advance
++advice
++aerobic
++affair
++afford
++afraid
++again
++age
++agent
++agree
++ahead
++aim
++air
++airport
++aisle
++alarm
++album
++alcohol
++alert
++alien
++all
++alley
++allow
++almost
++alone
++alpha
++already
++also
++alter
++always
++amateur
++amazing
++among
++amount
++amused
++analyst
++anchor
++ancient
++anger
++angle
++angry
++animal
++ankle
++announce
++annual
++another
++answer
++antenna
++antique
++anxiety
++any
++apart
++apology
++appear
++apple
++approve
++april
++arch
++arctic
++area
++arena
++argue
++arm
++armed
++armor
++army
++around
++arrange
++arrest
++arrive
++arrow
++art
++artefact
++artist
++artwork
++ask
++aspect
++assault
++asset
++assist
++assume
++asthma
++athlete
++atom
++attack
++attend
++attitude
++attract
++auction
++audit
++august
++aunt
++author
++auto
++autumn
++average
++avocado
++avoid
++awake
++aware
++away
++awesome
++awful
++awkward
++axis
++baby
++bachelor
++bacon
++badge
++bag
++balance
++balcony
++ball
++bamboo
++banana
++banner
++bar
++barely
++bargain
++barrel
++base
++basic
++basket
++battle
++beach
++bean
++beauty
++because
++become
++beef
++before
++begin
++behave
++behind
++believe
++below
++belt
++bench
++benefit
++best
++betray
++better
++between
++beyond
++bicycle
++bid
++bike
++bind
++biology
++bird
++birth
++bitter
++black
++blade
++blame
++blanket
++blast
++bleak
++bless
++blind
++blood
++blossom
++blouse
++blue
++blur
++blush
++board
++boat
++body
++boil
++bomb
++bone
++bonus
++book
++boost
++border
++boring
++borrow
++boss
++bottom
++bounce
++box
++boy
++bracket
++brain
++brand
++brass
++brave
++bread
++breeze
++brick
++bridge
++brief
++bright
++bring
++brisk
++broccoli
++broken
++bronze
++broom
++brother
++brown
++brush
++bubble
++buddy
++budget
++buffalo
++build
++bulb
++bulk
++bullet
++bundle
++bunker
++burden
++burger
++burst
++bus
++business
++busy
++butter
++buyer
++buzz
++cabbage
++cabin
++cable
++cactus
++cage
++cake
++call
++calm
++camera
++camp
++can
++canal
++cancel
++candy
++cannon
++canoe
++canvas
++canyon
++capable
++capital
++captain
++car
++carbon
++card
++cargo
++carpet
++carry
++cart
++case
++cash
++casino
++castle
++casual
++cat
++catalog
++catch
++category
++cattle
++caught
++cause
++caution
++cave
++ceiling
++celery
++cement
++census
++century
++cereal
++certain
++chair
++chalk
++champion
++change
++chaos
++chapter
++charge
++chase
++chat
++cheap
++check
++cheese
++chef
++cherry
++chest
++chicken
++chief
++child
++chimney
++choice
++choose
++chronic
++chuckle
++chunk
++churn
++cigar
++cinnamon
++circle
++citizen
++city
++civil
++claim
++clap
++clarify
++claw
++clay
++clean
++clerk
++clever
++click
++client
++cliff
++climb
++clinic
++clip
++clock
++clog
++close
++cloth
++cloud
++clown
++club
++clump
++cluster
++clutch
++coach
++coast
++coconut
++code
++coffee
++coil
++coin
++collect
++color
++column
++combine
++come
++comfort
++comic
++common
++company
++concert
++conduct
++confirm
++congress
++connect
++consider
++control
++convince
++cook
++cool
++copper
++copy
++coral
++core
++corn
++correct
++cost
++cotton
++couch
++country
++couple
++course
++cousin
++cover
++coyote
++crack
++cradle
++craft
++cram
++crane
++crash
++crater
++crawl
++crazy
++cream
++credit
++creek
++crew
++cricket
++crime
++crisp
++critic
++crop
++cross
++crouch
++crowd
++crucial
++cruel
++cruise
++crumble
++crunch
++crush
++cry
++crystal
++cube
++culture
++cup
++cupboard
++curious
++current
++curtain
++curve
++cushion
++custom
++cute
++cycle
++dad
++damage
++damp
++dance
++danger
++daring
++dash
++daughter
++dawn
++day
++deal
++debate
++debris
++decade
++december
++decide
++decline
++decorate
++decrease
++deer
++defense
++define
++defy
++degree
++delay
++deliver
++demand
++demise
++denial
++dentist
++deny
++depart
++depend
++deposit
++depth
++deputy
++derive
++describe
++desert
++design
++desk
++despair
++destroy
++detail
++detect
++develop
++device
++devote
++diagram
++dial
++diamond
++diary
++dice
++diesel
++diet
++differ
++digital
++dignity
++dilemma
++dinner
++dinosaur
++direct
++dirt
++disagree
++discover
++disease
++dish
++dismiss
++disorder
++display
++distance
++divert
++divide
++divorce
++dizzy
++doctor
++document
++dog
++doll
++dolphin
++domain
++donate
++donkey
++donor
++door
++dose
++double
++dove
++draft
++dragon
++drama
++drastic
++draw
++dream
++dress
++drift
++drill
++drink
++drip
++drive
++drop
++drum
++dry
++duck
++dumb
++dune
++during
++dust
++dutch
++duty
++dwarf
++dynamic
++eager
++eagle
++early
++earn
++earth
++easily
++east
++easy
++echo
++ecology
++economy
++edge
++edit
++educate
++effort
++egg
++eight
++either
++elbow
++elder
++electric
++elegant
++element
++elephant
++elevator
++elite
++else
++embark
++embody
++embrace
++emerge
++emotion
++employ
++empower
++empty
++enable
++enact
++end
++endless
++endorse
++enemy
++energy
++enforce
++engage
++engine
++enhance
++enjoy
++enlist
++enough
++enrich
++enroll
++ensure
++enter
++entire
++entry
++envelope
++episode
++equal
++equip
++era
++erase
++erode
++erosion
++error
++erupt
++escape
++essay
++essence
++estate
++eternal
++ethics
++evidence
++evil
++evoke
++evolve
++exact
++example
++excess
++exchange
++excite
++exclude
++excuse
++execute
++exercise
++exhaust
++exhibit
++exile
++exist
++exit
++exotic
++expand
++expect
++expire
++explain
++expose
++express
++extend
++extra
++eye
++eyebrow
++fabric
++face
++faculty
++fade
++faint
++faith
++fall
++false
++fame
++family
++famous
++fan
++fancy
++fantasy
++farm
++fashion
++fat
++fatal
++father
++fatigue
++fault
++favorite
++feature
++february
++federal
++fee
++feed
++feel
++female
++fence
++festival
++fetch
++fever
++few
++fiber
++fiction
++field
++figure
++file
++film
++filter
++final
++find
++fine
++finger
++finish
++fire
++firm
++first
++fiscal
++fish
++fit
++fitness
++fix
++flag
++flame
++flash
++flat
++flavor
++flee
++flight
++flip
++float
++flock
++floor
++flower
++fluid
++flush
++fly
++foam
++focus
++fog
++foil
++fold
++follow
++food
++foot
++force
++forest
++forget
++fork
++fortune
++forum
++forward
++fossil
++foster
++found
++fox
++fragile
++frame
++frequent
++fresh
++friend
++fringe
++frog
++front
++frost
++frown
++frozen
++fruit
++fuel
++fun
++funny
++furnace
++fury
++future
++gadget
++gain
++galaxy
++gallery
++game
++gap
++garage
++garbage
++garden
++garlic
++garment
++gas
++gasp
++gate
++gather
++gauge
++gaze
++general
++genius
++genre
++gentle
++genuine
++gesture
++ghost
++giant
++gift
++giggle
++ginger
++giraffe
++girl
++give
++glad
++glance
++glare
++glass
++glide
++glimpse
++globe
++gloom
++glory
++glove
++glow
++glue
++goat
++goddess
++gold
++good
++goose
++gorilla
++gospel
++gossip
++govern
++gown
++grab
++grace
++grain
++grant
++grape
++grass
++gravity
++great
++green
++grid
++grief
++grit
++grocery
++group
++grow
++grunt
++guard
++guess
++guide
++guilt
++guitar
++gun
++gym
++habit
++hair
++half
++hammer
++hamster
++hand
++happy
++harbor
++hard
++harsh
++harvest
++hat
++have
++hawk
++hazard
++head
++health
++heart
++heavy
++hedgehog
++height
++hello
++helmet
++help
++hen
++hero
++hidden
++high
++hill
++hint
++hip
++hire
++history
++hobby
++hockey
++hold
++hole
++holiday
++hollow
++home
++honey
++hood
++hope
++horn
++horror
++horse
++hospital
++host
++hotel
++hour
++hover
++hub
++huge
++human
++humble
++humor
++hundred
++hungry
++hunt
++hurdle
++hurry
++hurt
++husband
++hybrid
++ice
++icon
++idea
++identify
++idle
++ignore
++ill
++illegal
++illness
++image
++imitate
++immense
++immune
++impact
++impose
++improve
++impulse
++inch
++include
++income
++increase
++index
++indicate
++indoor
++industry
++infant
++inflict
++inform
++inhale
++inherit
++initial
++inject
++injury
++inmate
++inner
++innocent
++input
++inquiry
++insane
++insect
++inside
++inspire
++install
++intact
++interest
++into
++invest
++invite
++involve
++iron
++island
++isolate
++issue
++item
++ivory
++jacket
++jaguar
++jar
++jazz
++jealous
++jeans
++jelly
++jewel
++job
++join
++joke
++journey
++joy
++judge
++juice
++jump
++jungle
++junior
++junk
++just
++kangaroo
++keen
++keep
++ketchup
++key
++kick
++kid
++kidney
++kind
++kingdom
++kiss
++kit
++kitchen
++kite
++kitten
++kiwi
++knee
++knife
++knock
++know
++lab
++label
++labor
++ladder
++lady
++lake
++lamp
++language
++laptop
++large
++later
++latin
++laugh
++laundry
++lava
++law
++lawn
++lawsuit
++layer
++lazy
++leader
++leaf
++learn
++leave
++lecture
++left
++leg
++legal
++legend
++leisure
++lemon
++lend
++length
++lens
++leopard
++lesson
++letter
++level
++liar
++liberty
++library
++license
++life
++lift
++light
++like
++limb
++limit
++link
++lion
++liquid
++list
++little
++live
++lizard
++load
++loan
++lobster
++local
++lock
++logic
++lonely
++long
++loop
++lottery
++loud
++lounge
++love
++loyal
++lucky
++luggage
++lumber
++lunar
++lunch
++luxury
++lyrics
++machine
++mad
++magic
++magnet
++maid
++mail
++main
++major
++make
++mammal
++man
++manage
++mandate
++mango
++mansion
++manual
++maple
++marble
++march
++margin
++marine
++market
++marriage
++mask
++mass
++master
++match
++material
++math
++matrix
++matter
++maximum
++maze
++meadow
++mean
++measure
++meat
++mechanic
++medal
++media
++melody
++melt
++member
++memory
++mention
++menu
++mercy
++merge
++merit
++merry
++mesh
++message
++metal
++method
++middle
++midnight
++milk
++million
++mimic
++mind
++minimum
++minor
++minute
++miracle
++mirror
++misery
++miss
++mistake
++mix
++mixed
++mixture
++mobile
++model
++modify
++mom
++moment
++monitor
++monkey
++monster
++month
++moon
++moral
++more
++morning
++mosquito
++mother
++motion
++motor
++mountain
++mouse
++move
++movie
++much
++muffin
++mule
++multiply
++muscle
++museum
++mushroom
++music
++must
++mutual
++myself
++mystery
++myth
++naive
++name
++napkin
++narrow
++nasty
++nation
++nature
++near
++neck
++need
++negative
++neglect
++neither
++nephew
++nerve
++nest
++net
++network
++neutral
++never
++news
++next
++nice
++night
++noble
++noise
++nominee
++noodle
++normal
++north
++nose
++notable
++note
++nothing
++notice
++novel
++now
++nuclear
++number
++nurse
++nut
++oak
++obey
++object
++oblige
++obscure
++observe
++obtain
++obvious
++occur
++ocean
++october
++odor
++off
++offer
++office
++often
++oil
++okay
++old
++olive
++olympic
++omit
++once
++one
++onion
++online
++only
++open
++opera
++opinion
++oppose
++option
++orange
++orbit
++orchard
++order
++ordinary
++organ
++orient
++original
++orphan
++ostrich
++other
++outdoor
++outer
++output
++outside
++oval
++oven
++over
++own
++owner
++oxygen
++oyster
++ozone
++pact
++paddle
++page
++pair
++palace
++palm
++panda
++panel
++panic
++panther
++paper
++parade
++parent
++park
++parrot
++party
++pass
++patch
++path
++patient
++patrol
++pattern
++pause
++pave
++payment
++peace
++peanut
++pear
++peasant
++pelican
++pen
++penalty
++pencil
++people
++pepper
++perfect
++permit
++person
++pet
++phone
++photo
++phrase
++physical
++piano
++picnic
++picture
++piece
++pig
++pigeon
++pill
++pilot
++pink
++pioneer
++pipe
++pistol
++pitch
++pizza
++place
++planet
++plastic
++plate
++play
++please
++pledge
++pluck
++plug
++plunge
++poem
++poet
++point
++polar
++pole
++police
++pond
++pony
++pool
++popular
++portion
++position
++possible
++post
++potato
++pottery
++poverty
++powder
++power
++practice
++praise
++predict
++prefer
++prepare
++present
++pretty
++prevent
++price
++pride
++primary
++print
++priority
++prison
++private
++prize
++problem
++process
++produce
++profit
++program
++project
++promote
++proof
++property
++prosper
++protect
++proud
++provide
++public
++pudding
++pull
++pulp
++pulse
++pumpkin
++punch
++pupil
++puppy
++purchase
++purity
++purpose
++purse
++push
++put
++puzzle
++pyramid
++quality
++quantum
++quarter
++question
++quick
++quit
++quiz
++quote
++rabbit
++raccoon
++race
++rack
++radar
++radio
++rail
++rain
++raise
++rally
++ramp
++ranch
++random
++range
++rapid
++rare
++rate
++rather
++raven
++raw
++razor
++ready
++real
++reason
++rebel
++rebuild
++recall
++receive
++recipe
++record
++recycle
++reduce
++reflect
++reform
++refuse
++region
++regret
++regular
++reject
++relax
++release
++relief
++rely
++remain
++remember
++remind
++remove
++render
++renew
++rent
++reopen
++repair
++repeat
++replace
++report
++require
++rescue
++resemble
++resist
++resource
++response
++result
++retire
++retreat
++return
++reunion
++reveal
++review
++reward
++rhythm
++rib
++ribbon
++rice
++rich
++ride
++ridge
++rifle
++right
++rigid
++ring
++riot
++ripple
++risk
++ritual
++rival
++river
++road
++roast
++robot
++robust
++rocket
++romance
++roof
++rookie
++room
++rose
++rotate
++rough
++round
++route
++royal
++rubber
++rude
++rug
++rule
++run
++runway
++rural
++sad
++saddle
++sadness
++safe
++sail
++salad
++salmon
++salon
++salt
++salute
++same
++sample
++sand
++satisfy
++satoshi
++sauce
++sausage
++save
++say
++scale
++scan
++scare
++scatter
++scene
++scheme
++school
++science
++scissors
++scorpion
++scout
++scrap
++screen
++script
++scrub
++sea
++search
++season
++seat
++second
++secret
++section
++security
++seed
++seek
++segment
++select
++sell
++seminar
++senior
++sense
++sentence
++series
++service
++session
++settle
++setup
++seven
++shadow
++shaft
++shallow
++share
++shed
++shell
++sheriff
++shield
++shift
++shine
++ship
++shiver
++shock
++shoe
++shoot
++shop
++short
++shoulder
++shove
++shrimp
++shrug
++shuffle
++shy
++sibling
++sick
++side
++siege
++sight
++sign
++silent
++silk
++silly
++silver
++similar
++simple
++since
++sing
++siren
++sister
++situate
++six
++size
++skate
++sketch
++ski
++skill
++skin
++skirt
++skull
++slab
++slam
++sleep
++slender
++slice
++slide
++slight
++slim
++slogan
++slot
++slow
++slush
++small
++smart
++smile
++smoke
++smooth
++snack
++snake
++snap
++sniff
++snow
++soap
++soccer
++social
++sock
++soda
++soft
++solar
++soldier
++solid
++solution
++solve
++someone
++song
++soon
++sorry
++sort
++soul
++sound
++soup
++source
++south
++space
++spare
++spatial
++spawn
++speak
++special
++speed
++spell
++spend
++sphere
++spice
++spider
++spike
++spin
++spirit
++split
++spoil
++sponsor
++spoon
++sport
++spot
++spray
++spread
++spring
++spy
++square
++squeeze
++squirrel
++stable
++stadium
++staff
++stage
++stairs
++stamp
++stand
++start
++state
++stay
++steak
++steel
++stem
++step
++stereo
++stick
++still
++sting
++stock
++stomach
++stone
++stool
++story
++stove
++strategy
++street
++strike
++strong
++struggle
++student
++stuff
++stumble
++style
++subject
++submit
++subway
++success
++such
++sudden
++suffer
++sugar
++suggest
++suit
++summer
++sun
++sunny
++sunset
++super
++supply
++supreme
++sure
++surface
++surge
++surprise
++surround
++survey
++suspect
++sustain
++swallow
++swamp
++swap
++swarm
++swear
++sweet
++swift
++swim
++swing
++switch
++sword
++symbol
++symptom
++syrup
++system
++table
++tackle
++tag
++tail
++talent
++talk
++tank
++tape
++target
++task
++taste
++tattoo
++taxi
++teach
++team
++tell
++ten
++tenant
++tennis
++tent
++term
++test
++text
++thank
++that
++theme
++then
++theory
++there
++they
++thing
++this
++thought
++three
++thrive
++throw
++thumb
++thunder
++ticket
++tide
++tiger
++tilt
++timber
++time
++tiny
++tip
++tired
++tissue
++title
++toast
++tobacco
++today
++toddler
++toe
++together
++toilet
++token
++tomato
++tomorrow
++tone
++tongue
++tonight
++tool
++tooth
++top
++topic
++topple
++torch
++tornado
++tortoise
++toss
++total
++tourist
++toward
++tower
++town
++toy
++track
++trade
++traffic
++tragic
++train
++transfer
++trap
++trash
++travel
++tray
++treat
++tree
++trend
++trial
++tribe
++trick
++trigger
++trim
++trip
++trophy
++trouble
++truck
++true
++truly
++trumpet
++trust
++truth
++try
++tube
++tuition
++tumble
++tuna
++tunnel
++turkey
++turn
++turtle
++twelve
++twenty
++twice
++twin
++twist
++two
++type
++typical
++ugly
++umbrella
++unable
++unaware
++uncle
++uncover
++under
++undo
++unfair
++unfold
++unhappy
++uniform
++unique
++unit
++universe
++unknown
++unlock
++until
++unusual
++unveil
++update
++upgrade
++uphold
++upon
++upper
++upset
++urban
++urge
++usage
++use
++used
++useful
++useless
++usual
++utility
++vacant
++vacuum
++vague
++valid
++valley
++valve
++van
++vanish
++vapor
++various
++vast
++vault
++vehicle
++velvet
++vendor
++venture
++venue
++verb
++verify
++version
++very
++vessel
++veteran
++viable
++vibrant
++vicious
++victory
++video
++view
++village
++vintage
++violin
++virtual
++virus
++visa
++visit
++visual
++vital
++vivid
++vocal
++voice
++void
++volcano
++volume
++vote
++voyage
++wage
++wagon
++wait
++walk
++wall
++walnut
++want
++warfare
++warm
++warrior
++wash
++wasp
++waste
++water
++wave
++way
++wealth
++weapon
++wear
++weasel
++weather
++web
++wedding
++weekend
++weird
++welcome
++west
++wet
++whale
++what
++wheat
++wheel
++when
++where
++whip
++whisper
++wide
++width
++wife
++wild
++will
++win
++window
++wine
++wing
++wink
++winner
++winter
++wire
++wisdom
++wise
++wish
++witness
++wolf
++woman
++wonder
++wood
++wool
++word
++work
++world
++worry
++worth
++wrap
++wreck
++wrestle
++wrist
++write
++wrong
++yard
++year
++yellow
++you
++young
++youth
++zebra
++zero
++zone
++zoo
 diff --git a/TMessagesProj/src/main/res/values-fa/zg_strings.xml b/TMessagesProj/src/main/res/values-fa/zg_strings.xml
 new file mode 100644
-index 00000000..9aeb44d1
+index 0000000000000000000000000000000000000000..473b5f5686e766f98ba1ac04e0189383c1ab4d1b
 --- /dev/null
 +++ b/TMessagesProj/src/main/res/values-fa/zg_strings.xml
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,133 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<resources>
 +    <string name="ZgAppName">زیروگرام</string>
@@ -2486,9 +6846,90 @@ index 00000000..9aeb44d1
 +    <string name="ZgHistoryNotice">تاریخچهٔ گفتگوها فقط روی همین دستگاه است. خروج از حساب آن را نگه می‌دارد؛ حذف برنامه یا گم‌شدن گوشی آن را از بین می‌برد.</string>
 +    <string name="ZgFeatureDisabled">این قابلیت در این نسخه فعال نیست.</string>
 +    <string name="ZgFeatureDisabledShort">غیرفعال</string>
++    <string name="ZgWelcomeTitle">به زیروگرام خوش آمدید</string>
++    <string name="ZgWelcomeSubtitle">نحوهٔ ادامه را انتخاب کنید.</string>
++    <string name="ZgRoleUser">ورود به‌عنوان کاربر</string>
++    <string name="ZgRoleUserHint">با «پیام اتصال» که صاحب سرور به شما داده به سرور بپیوندید.</string>
++    <string name="ZgRoleOwner">ورود به‌عنوان صاحب سرور</string>
++    <string name="ZgRoleOwnerHint">با IP و ۱۲ کلمهٔ صاحب سرور، سرور خودتان را مدیریت کنید.</string>
++    <string name="ZgCancelAddServer">انصراف</string>
++    <string name="ZgUserJoinTitle">پیوستن به سرور</string>
++    <string name="ZgUserJoinHelp">پیام اتصالی را که صاحب سرور برایتان فرستاده بچسبانید. نشانی سرور از شما پنهان می‌ماند. اگر توکن گروه هم به شما داده شده، آن را هم وارد کنید: بعد از ورود، خودکار به آن گروه اضافه می‌شوید.</string>
++    <string name="ZgHintConnectMessage">پیام اتصال (با zg1. شروع می‌شود)</string>
++    <string name="ZgHintGroupToken">توکن گروه (اختیاری، ۳۲ رقم)</string>
++    <string name="ZgHintGroupTokenRequired">توکن گروه (۳۲ رقم)</string>
++    <string name="ZgPaste">چسباندن</string>
++    <string name="ZgConnectMessageInvalid">این پیام اتصال معتبر نیست.</string>
++    <string name="ZgServerAlready">این سرور قبلاً اضافه شده است.</string>
++    <string name="ZgNoFreeSlot">به حداکثر تعداد سرورها رسیده‌اید.</string>
++    <string name="ZgOwnerTitle">ورود صاحب سرور</string>
++    <string name="ZgOwnerHelp">IP سرور و ۱۲ کلمهٔ صاحب آن را وارد کنید. این ۱۲ کلمه هویت شما به‌عنوان صاحب سرور است: هرگز روی شبکه فرستاده نمی‌شود (برنامه و سرور فقط به هم ثابت می‌کنند که آن را می‌دانند). بعد از ورود، روی همین گوشی دیگر چیزی پرسیده نمی‌شود؛ روی گوشی جدید یا بعد از نصب دوبارهٔ برنامه، ۱۲ کلمه لازم است.</string>
++    <string name="ZgOwnerRetryHelp">۱۲ کلمهٔ صاحب این سرور را دوباره وارد کنید.</string>
++    <string name="ZgHintServerIp">IP سرور (یا IP:پورت)</string>
++    <string name="ZgOwnerConnect">اتصال</string>
++    <string name="ZgOwnerConnecting">در حال اتصال به سرور…</string>
++    <string name="ZgOwnerKeyFailed">به سرور نرسیدیم. IP را بررسی کنید و مطمئن شوید سرور روشن است.</string>
++    <string name="ZgOwnerBadLogin">این ۱۲ کلمهٔ صاحبِ این سرور نیست، یا این سرور شما نیست.</string>
++    <string name="ZgOwnerDisabled">ورود صاحب سرور روی این سرور فعال نیست.</string>
++    <string name="ZgOwnerOtherServer">استفاده از سرور دیگر</string>
++    <string name="ZgBack">بازگشت</string>
++    <string name="ZgOwnerPanelTitle">مدیریت سرور</string>
++    <string name="ZgOwnerMessageTitle">پیام اتصال</string>
++    <string name="ZgOwnerMessageHelp">این متن را به کسانی بدهید که باید به سرور شما بپیوندند. نشانی سرور در آن رمزگذاری شده است، پس IP را نمی‌بینند. هر کس آن را داشته باشد می‌تواند روی سرور شما حساب بسازد.</string>
++    <string name="ZgOwnerGroupsTitle">گروه‌ها و توکن‌ها</string>
++    <string name="ZgOwnerGroupsHelp">هر گروه توکن تصادفی ۳۲ رقمیِ مخصوص خودش را دارد. کسی که پیام اتصال و توکن یک گروه را داشته باشد می‌تواند به آن گروه بپیوندد.</string>
++    <string name="ZgOwnerNoGroups">هنوز گروهی نیست. توکن هر گروه به محض ساخته شدن آن اینجا نمایش داده می‌شود.</string>
++    <string name="ZgMembers">%d عضو</string>
++    <string name="ZgRotate">توکن جدید</string>
++    <string name="ZgRotateConfirm">برای این گروه توکن جدید ساخته شود؟ توکن قبلی بلافاصله از کار می‌افتد.</string>
++    <string name="ZgRefresh">تازه‌سازی</string>
++    <string name="ZgInviteShare">ارسال دعوت‌نامه (پیام + توکن)</string>
++    <string name="ZgInviteHeader">دعوت به یک گروه زیروگرام</string>
++    <string name="ZgGroupTokenLabel">توکن گروه</string>
++    <string name="ZgJoinTitle">پیوستن به گروه</string>
++    <string name="ZgJoinHelp">توکن ۳۲ رقمیِ گروهی را که می‌خواهید در این سرور به آن بپیوندید وارد کنید.</string>
++    <string name="ZgJoinButton">پیوستن</string>
++    <string name="ZgJoined">به گروه پیوستید.</string>
++    <string name="ZgErrTokenInvalid">این توکن معتبر نیست.</string>
++    <string name="ZgErrAlreadyMember">شما از قبل عضو این گروه هستید.</string>
++    <string name="ZgErrGroupFull">ظرفیت این گروه پر است.</string>
++    <string name="ZgErrForbidden">اجازهٔ این کار را ندارید.</string>
++    <string name="ZgServersTitle">سرورهای من</string>
++    <string name="ZgServersHelp">می‌توانید هم‌زمان در چند سرور وارد شوید: به‌عنوان کاربر، صاحب سرور یا هر دو. برای رفتن به یک سرور روی آن بزنید.</string>
++    <string name="ZgServersAdd">افزودن سرور</string>
++    <string name="ZgServerOwnerBadge">صاحب</string>
++    <string name="ZgServerNotSignedIn">وارد نشده</string>
++    <string name="ZgMenuServers">سرورها</string>
++    <string name="ZgMenuJoin">پیوستن به گروه با توکن</string>
++    <string name="ZgMenuOwner">مدیریت سرور</string>
++    <string name="ZgGroupTokenRow">توکن گروه</string>
++    <string name="ZgGroupTokenTitle">توکن گروه</string>
++    <string name="ZgGroupTokenHelp">هر کس این توکن و پیام اتصال سرور را داشته باشد می‌تواند به این گروه بپیوندد. هر دو را به کسانی بدهید که می‌خواهید اضافه کنید. پیام اتصال را صاحب سرور می‌دهد. با ساختن توکن جدید، توکن قبلی از کار می‌افتد.</string>
++    <string name="ZgUpdateAvailable">نسخهٔ جدید موجود است</string>
++    <string name="ZgUpdateAvailableText">نسخهٔ %1$s موجود است (نسخهٔ شما %2$s).</string>
++    <string name="ZgUpdateNow">به‌روزرسانی</string>
++    <string name="ZgUpdateLater">بعداً</string>
++    <string name="ZgUpdateTitle">به‌روزرسانی</string>
++    <string name="ZgUpdateInstalled">نسخهٔ نصب‌شده: %1$s</string>
++    <string name="ZgUpdateUpToDate">آخرین نسخه را دارید.</string>
++    <string name="ZgUpdateChecking">در حال بررسی به‌روزرسانی…</string>
++    <string name="ZgUpdateCheckAgain">بررسی دوباره</string>
++    <string name="ZgUpdateNote">به‌روزرسانی‌ها از مخزن عمومی زیروگرام در GitHub می‌آیند. این بخش اختیاری است: پیام‌رسانی هرگز به آن نیاز ندارد و اگر GitHub در دسترس نباشد بی‌صدا رد می‌شود.</string>
++    <string name="ZgUpdateDownloading">در حال دانلود</string>
++    <string name="ZgUpdateInstalling">در حال شروع نصب…</string>
++    <string name="ZgUpdateNoDigest">این نسخه چک‌سام ندارد، پس قابل تأیید نیست و نصب نمی‌شود.</string>
++    <string name="ZgUpdateBadDigest">فایل دانلودشده با چک‌سامش نمی‌خواند. چیزی نصب نشد.</string>
++    <string name="ZgUpdateBadSigner">فایل دانلودشده با همان کلیدِ این برنامه امضا نشده است. چیزی نصب نشد.</string>
++    <string name="ZgUpdateDownloadFailed">دانلود به‌روزرسانی ممکن نشد. اتصال را بررسی و دوباره تلاش کنید.</string>
++    <string name="ZgUpdateAllowInstall">در صفحهٔ تنظیماتی که باز شد، اجازهٔ نصب از این برنامه را بدهید و دوباره «به‌روزرسانی» را بزنید.</string>
++    <string name="ZgUpdateInstallFailed">شروع نصب ممکن نشد.</string>
++    <string name="ZgMenuUpdate">بررسی به‌روزرسانی</string>
++    <string name="ZgMenuUpdateAvailable">به‌روزرسانی موجود است</string>
++    <string name="ZgHintOwnerWords">۱۲ کلمهٔ صاحب سرور (با فاصله از هم جدا)</string>
++    <string name="ZgOwnerWordsInvalid">۱۲ کلمه معتبر نیست. هر کلمه و املایش را بررسی کنید.</string>
 +</resources>
 diff --git a/TMessagesProj/src/main/res/values/strings.xml b/TMessagesProj/src/main/res/values/strings.xml
-index ffa4d566..62b55140 100644
+index ffa4d566355f99b5fc6d3051d86fd91884639b36..62b551402be908ec3303aa4d4047dbf0b7956a1d 100644
 --- a/TMessagesProj/src/main/res/values/strings.xml
 +++ b/TMessagesProj/src/main/res/values/strings.xml
 @@ -1,6 +1,6 @@
@@ -2501,10 +6942,10 @@ index ffa4d566..62b55140 100644
      <string name="English">English</string>
 diff --git a/TMessagesProj/src/main/res/values/zg_strings.xml b/TMessagesProj/src/main/res/values/zg_strings.xml
 new file mode 100644
-index 00000000..79de01de
+index 0000000000000000000000000000000000000000..6cffa38c26c2b3ccb48c56407e365922eb72adcb
 --- /dev/null
 +++ b/TMessagesProj/src/main/res/values/zg_strings.xml
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,133 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<resources>
 +    <string name="ZgAppName">Zerogram</string>
@@ -2556,12 +6997,93 @@ index 00000000..79de01de
 +    <string name="ZgHistoryNotice">Your chat history is stored only on this device. Signing out keeps it; uninstalling the app or losing the phone loses it.</string>
 +    <string name="ZgFeatureDisabled">This feature is not available in this version.</string>
 +    <string name="ZgFeatureDisabledShort">unavailable</string>
++    <string name="ZgWelcomeTitle">Welcome to Zerogram</string>
++    <string name="ZgWelcomeSubtitle">Choose how you want to continue.</string>
++    <string name="ZgRoleUser">Sign in as a user</string>
++    <string name="ZgRoleUserHint">Join a server with the connection message its owner gave you.</string>
++    <string name="ZgRoleOwner">Sign in as a server owner</string>
++    <string name="ZgRoleOwnerHint">Manage your own server with its IP address and your 12 owner words.</string>
++    <string name="ZgCancelAddServer">Cancel</string>
++    <string name="ZgUserJoinTitle">Join a server</string>
++    <string name="ZgUserJoinHelp">Paste the connection message the server owner sent you. The server address stays hidden from you. If you were also given a group token, enter it as well: you will be added to that group right after you sign in.</string>
++    <string name="ZgHintConnectMessage">Connection message (starts with zg1.)</string>
++    <string name="ZgHintGroupToken">Group token (optional, 32 digits)</string>
++    <string name="ZgHintGroupTokenRequired">Group token (32 digits)</string>
++    <string name="ZgPaste">Paste</string>
++    <string name="ZgConnectMessageInvalid">This connection message is not valid.</string>
++    <string name="ZgServerAlready">This server has already been added.</string>
++    <string name="ZgNoFreeSlot">You have reached the maximum number of servers.</string>
++    <string name="ZgOwnerTitle">Server owner sign-in</string>
++    <string name="ZgOwnerHelp">Enter the server\'s IP address and the 12 words of its owner. The words are your identity as the owner: they are never sent over the network (the app and the server only prove to each other that they know them). Once signed in you are not asked again on this phone; on a new phone, or after reinstalling the app, you need the 12 words.</string>
++    <string name="ZgOwnerRetryHelp">Enter the 12 owner words of this server again.</string>
++    <string name="ZgHintServerIp">Server IP address (or IP:port)</string>
++    <string name="ZgOwnerConnect">Connect</string>
++    <string name="ZgOwnerConnecting">Connecting to the server…</string>
++    <string name="ZgOwnerKeyFailed">Could not reach the server. Check the IP address and that the server is running.</string>
++    <string name="ZgOwnerBadLogin">These are not the owner words of this server, or this is not your server.</string>
++    <string name="ZgOwnerDisabled">Owner sign-in is not enabled on this server.</string>
++    <string name="ZgOwnerOtherServer">Use another server</string>
++    <string name="ZgBack">Back</string>
++    <string name="ZgOwnerPanelTitle">Server management</string>
++    <string name="ZgOwnerMessageTitle">Connection message</string>
++    <string name="ZgOwnerMessageHelp">Give this text to the people who should join your server. It carries the server address in encrypted form, so they never see the IP. Anyone who has it can create an account on your server.</string>
++    <string name="ZgOwnerGroupsTitle">Groups and their tokens</string>
++    <string name="ZgOwnerGroupsHelp">Every group has its own random 32-digit token. A person who has the connection message and a group\'s token can join that group.</string>
++    <string name="ZgOwnerNoGroups">No groups yet. A group\'s token appears here as soon as someone creates the group.</string>
++    <string name="ZgMembers">%d members</string>
++    <string name="ZgRotate">New token</string>
++    <string name="ZgRotateConfirm">Create a new token for this group? The old token stops working immediately.</string>
++    <string name="ZgRefresh">Refresh</string>
++    <string name="ZgInviteShare">Share invitation (message + token)</string>
++    <string name="ZgInviteHeader">Invitation to a Zerogram group</string>
++    <string name="ZgGroupTokenLabel">Group token</string>
++    <string name="ZgJoinTitle">Join a group</string>
++    <string name="ZgJoinHelp">Enter the 32-digit token of the group you want to join on this server.</string>
++    <string name="ZgJoinButton">Join</string>
++    <string name="ZgJoined">You joined the group.</string>
++    <string name="ZgErrTokenInvalid">This token is not valid.</string>
++    <string name="ZgErrAlreadyMember">You are already in this group.</string>
++    <string name="ZgErrGroupFull">This group is full.</string>
++    <string name="ZgErrForbidden">You are not allowed to do this.</string>
++    <string name="ZgServersTitle">My servers</string>
++    <string name="ZgServersHelp">You can be signed in on several servers at once, as a user, as an owner, or both. Tap a server to switch to it.</string>
++    <string name="ZgServersAdd">Add a server</string>
++    <string name="ZgServerOwnerBadge">owner</string>
++    <string name="ZgServerNotSignedIn">not signed in</string>
++    <string name="ZgMenuServers">Servers</string>
++    <string name="ZgMenuJoin">Join a group with a token</string>
++    <string name="ZgMenuOwner">Server management</string>
++    <string name="ZgGroupTokenRow">Group token</string>
++    <string name="ZgGroupTokenTitle">Group token</string>
++    <string name="ZgGroupTokenHelp">Anyone who has this token and the server\'s connection message can join this group. Give both to the people you want to add. The connection message comes from the server owner. A new token makes the old one stop working.</string>
++    <string name="ZgUpdateAvailable">New version available</string>
++    <string name="ZgUpdateAvailableText">Version %1$s is available (you have %2$s).</string>
++    <string name="ZgUpdateNow">Update</string>
++    <string name="ZgUpdateLater">Later</string>
++    <string name="ZgUpdateTitle">Update</string>
++    <string name="ZgUpdateInstalled">Installed version: %1$s</string>
++    <string name="ZgUpdateUpToDate">You have the latest version.</string>
++    <string name="ZgUpdateChecking">Checking for updates…</string>
++    <string name="ZgUpdateCheckAgain">Check again</string>
++    <string name="ZgUpdateNote">Updates come from the public Zerogram repository on GitHub. This is optional: messaging never needs it, and it is silently skipped when GitHub cannot be reached.</string>
++    <string name="ZgUpdateDownloading">Downloading</string>
++    <string name="ZgUpdateInstalling">Starting the installer…</string>
++    <string name="ZgUpdateNoDigest">This release has no checksum, so it cannot be verified and will not be installed.</string>
++    <string name="ZgUpdateBadDigest">The downloaded file does not match its checksum. Nothing was installed.</string>
++    <string name="ZgUpdateBadSigner">The downloaded file is not signed by the same key as this app. Nothing was installed.</string>
++    <string name="ZgUpdateDownloadFailed">Could not download the update. Check your connection and try again.</string>
++    <string name="ZgUpdateAllowInstall">Allow installing from this app in the settings screen that just opened, then tap Update again.</string>
++    <string name="ZgUpdateInstallFailed">Could not start the installer.</string>
++    <string name="ZgMenuUpdate">Check for updates</string>
++    <string name="ZgMenuUpdateAvailable">Update available</string>
++    <string name="ZgHintOwnerWords">The 12 owner words (separated by spaces)</string>
++    <string name="ZgOwnerWordsInvalid">The 12 words are not valid. Check every word and its spelling.</string>
 +</resources>
 diff --git a/TMessagesProj_AppStandalone/build.gradle b/TMessagesProj_AppStandalone/build.gradle
-index 96dbbbf0..46d8f082 100644
+index 96dbbbf027344d6cc2aebed1060c5e86b7962b6e..357cf4f1c2a856b33b574dfda2b83eadd6147675 100644
 --- a/TMessagesProj_AppStandalone/build.gradle
 +++ b/TMessagesProj_AppStandalone/build.gradle
-@@ -44,7 +44,7 @@ android {
+@@ -44,19 +44,21 @@ android {
      }
  
      androidResources {
@@ -2570,7 +7092,23 @@ index 96dbbbf0..46d8f082 100644
      }
  
      signingConfigs {
-@@ -68,7 +68,6 @@ android {
+         debug {
+-            storeFile file("../TMessagesProj/config/release.keystore")
++            // Zerogram: releases are signed with the maintainer's own key (-PZG_KEYSTORE=...); the key that
++            // ships in the upstream repository is public and must never sign a Zerogram release.
++            storeFile project.hasProperty('ZG_KEYSTORE') ? file(project.property('ZG_KEYSTORE')) : file("../TMessagesProj/config/release.keystore")
+             storePassword RELEASE_STORE_PASSWORD
+             keyAlias RELEASE_KEY_ALIAS
+             keyPassword RELEASE_KEY_PASSWORD
+         }
+ 
+         release {
+-            storeFile file("../TMessagesProj/config/release.keystore")
++            storeFile project.hasProperty('ZG_KEYSTORE') ? file(project.property('ZG_KEYSTORE')) : file("../TMessagesProj/config/release.keystore")
+             storePassword RELEASE_STORE_PASSWORD
+             keyAlias RELEASE_KEY_ALIAS
+             keyPassword RELEASE_KEY_PASSWORD
+@@ -68,7 +70,6 @@ android {
              debuggable true
              jniDebuggable true
              signingConfig signingConfigs.debug
@@ -2578,7 +7116,7 @@ index 96dbbbf0..46d8f082 100644
              minifyEnabled false
              multiDexEnabled true
              proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
-@@ -79,7 +78,6 @@ android {
+@@ -79,7 +80,6 @@ android {
              debuggable false
              jniDebuggable false
              signingConfig signingConfigs.release
@@ -2586,7 +7124,7 @@ index 96dbbbf0..46d8f082 100644
              minifyEnabled true
              multiDexEnabled true
              proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro'
-@@ -155,4 +153,4 @@ android {
+@@ -155,4 +155,4 @@ android {
      }
  }
  
@@ -2594,7 +7132,7 @@ index 96dbbbf0..46d8f082 100644
 +// Zerogram: no Google services plugin (no Firebase configuration is generated)
 diff --git a/TMessagesProj_AppStandalone/src/main/res/mipmap-anydpi-v26/ic_launcher_sa.xml b/TMessagesProj_AppStandalone/src/main/res/mipmap-anydpi-v26/ic_launcher_sa.xml
 deleted file mode 100644
-index d3526773..00000000
+index d35267739aa374d75200adfa117ee8bef47e5f9c..0000000000000000000000000000000000000000
 --- a/TMessagesProj_AppStandalone/src/main/res/mipmap-anydpi-v26/ic_launcher_sa.xml
 +++ /dev/null
 @@ -1,6 +0,0 @@
@@ -2607,7 +7145,7 @@ index d3526773..00000000
 \ No newline at end of file
 diff --git a/TMessagesProj_AppStandalone/src/main/res/mipmap-anydpi-v26/icon_6_launcher_sa.xml b/TMessagesProj_AppStandalone/src/main/res/mipmap-anydpi-v26/icon_6_launcher_sa.xml
 deleted file mode 100644
-index 9ef459fa..00000000
+index 9ef459fa3734905d6729635d017a18616187e511..0000000000000000000000000000000000000000
 --- a/TMessagesProj_AppStandalone/src/main/res/mipmap-anydpi-v26/icon_6_launcher_sa.xml
 +++ /dev/null
 @@ -1,5 +0,0 @@
@@ -5812,7 +10350,7 @@ zN)pg+&f4WGF&7W#6@ENukaqcu$exQ%^(5`NnRJoQR6h3>`4m;!{|7raMZx3NDbD}^
 N002ovPDHLkV1mZ^h^7Dl
 
 diff --git a/gradle.properties b/gradle.properties
-index 38299bed..0b80d430 100644
+index 38299bed6c89ec6527d99aa7768a51e0e5de52f4..0b80d430ae80a56f187192a9d5e9cf555a874375 100644
 --- a/gradle.properties
 +++ b/gradle.properties
 @@ -15,12 +15,12 @@
