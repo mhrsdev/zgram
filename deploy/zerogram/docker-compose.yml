@@ -10,10 +10,16 @@ services:
     restart: unless-stopped
     ports:
       - "${ZEROGRAM_PORT:-5222}:5222/tcp"
+      # Public key bootstrap for the owner app (must be the MTProto port + 1 as seen by the phone).
+      - "${ZEROGRAM_BOOTSTRAP_PORT_HOST:-5223}:5223/tcp"
     environment:
       FERRITE_PUBLIC_ADDRESS: ${ZEROGRAM_PUBLIC_ADDRESS:?set ZEROGRAM_PUBLIC_ADDRESS in .env}
       FERRITE_PORT: "5222"
       ZEROGRAM_MASTER_KEY: ${ZEROGRAM_MASTER_KEY:?run scripts/install.sh to create .env}
+      ZEROGRAM_PUBLIC_PORT: ${ZEROGRAM_PORT:-5222}
+      ZEROGRAM_BOOTSTRAP_PORT: "5223"
+      ZEROGRAM_OWNER_PASSWORD: ${ZEROGRAM_OWNER_PASSWORD:-}
+      ZEROGRAM_SERVER_NAME: ${ZEROGRAM_SERVER_NAME:-Zerogram}
       ZEROGRAM_ISSUER: ${ZEROGRAM_ISSUER:-Zerogram}
       ZEROGRAM_QUEUE_TTL_HOURS: ${ZEROGRAM_QUEUE_TTL_HOURS:-168}
       ZEROGRAM_QUEUE_MAX_MESSAGES_PER_USER: ${ZEROGRAM_QUEUE_MAX_MESSAGES_PER_USER:-10000}
