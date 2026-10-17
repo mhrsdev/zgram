@@ -11,12 +11,17 @@ public sealed class ZgRetentionRuntime
     private readonly ZgRetention _retention;
     private readonly ZerogramOptions _options;
     private readonly ILogger _log;
+    private readonly ZgHealthEndpoint _health;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private CancellationTokenSource? _stopping;
     private Task? _loop;
 
-    public ZgRetentionRuntime(ZgRetention retention, ZerogramOptions options, ILogger log)
+    public ZgRetentionRuntime(ZgRetention retention, ZerogramOptions options, ILogger log,
+        ZgHealthEndpoint health, SecretVault vault)
     {
+        // Resolving the vault here creates the master key file at start-up, not at the first sign-up.
+        _ = vault;
+        _health = health;
         _retention = retention;
         _options = options;
         _log = log;
@@ -29,6 +34,8 @@ public sealed class ZgRetentionRuntime
         {
             if (_loop is not null) return;
             await _retention.SweepAsync();
+            _health.Start(Environment.GetEnvironmentVariable("ZEROGRAM_HEALTH_BIND") ?? "127.0.0.1",
+                int.TryParse(Environment.GetEnvironmentVariable("ZEROGRAM_HEALTH_PORT"), out int hp) ? hp : 8081);
             _stopping = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _loop = RunAsync(_stopping.Token);
         }
@@ -47,6 +54,7 @@ public sealed class ZgRetentionRuntime
             _loop = null;
         }
         finally { _gate.Release(); }
+        _health.Dispose();
         try { await loop; } catch (OperationCanceledException) { }
     }
 

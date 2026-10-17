@@ -108,8 +108,9 @@ public abstract class UserHandlerBase
             .Blocked(false)
             .Settings(settings.AsSpan())
             .NotifySettings(notifySettings.AsSpan())
-            .PhoneCallsAvailable(phoneCallsAvailable)
-            .VideoCallsAvailable(videoCallsAvailable)
+            // Zerogram: calls are not part of this product, whatever the caller computed.
+            .PhoneCallsAvailable(false)
+            .VideoCallsAvailable(false)
             .PhoneCallsPrivate(phoneCallsPrivate)
             .CommonChatsCount(0);
         if (!hasProfilePhoto)

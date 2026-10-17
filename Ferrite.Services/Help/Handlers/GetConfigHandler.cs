@@ -10,10 +10,12 @@ namespace Ferrite.Services.Handlers.HelpMethods;
 public sealed class GetConfigHandler
 {
     private readonly IDataCenter _dataCenter;
+    private readonly Zerogram.ZerogramOptions _zerogram;
 
-    public GetConfigHandler(IDataCenter dataCenter)
+    public GetConfigHandler(IDataCenter dataCenter, Zerogram.ZerogramOptions zerogram)
     {
         _dataCenter = dataCenter;
+        _zerogram = zerogram;
     }
 
     [TLFunction(Constructors.baseLayer_GetConfig)]
@@ -38,11 +40,11 @@ public sealed class GetConfigHandler
             .BlockedMode(false)
             .Date((int)DateTimeOffset.Now.ToUnixTimeSeconds())
             .Expires((int)DateTimeOffset.Now.AddSeconds(90).ToUnixTimeSeconds())
-            .TestMode(true)
+            .TestMode(false)
             .ThisDc(1)
             .DcOptions(dcOptions)
             .DcTxtDomainName("localhost"u8)
-            .ChatSizeMax(200)
+            .ChatSizeMax(_zerogram.GroupMemberLimit)
             .MegagroupSizeMax(100000)
             .ForwardedCountMax(100)
             .OnlineUpdatePeriodMs(120000)
@@ -53,9 +55,9 @@ public sealed class GetConfigHandler
             .NotifyDefaultDelayMs(1500)
             .PushChatPeriodMs(60000)
             .PushChatLimit(2)
-            .EditTimeLimit(172800)
-            .RevokeTimeLimit(172800)
-            .RevokePmTimeLimit(172800)
+            .EditTimeLimit(0) // Zerogram: no editing of sent messages
+            .RevokeTimeLimit(0) // Zerogram: deletion is local to each device
+            .RevokePmTimeLimit(0)
             .RatingEDecay(2419200)
             .StickersRecentLimit(200)
             .ChannelsReadMediaPeriod(604800)

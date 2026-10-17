@@ -39,12 +39,13 @@ class Server:
         })
         env.update(self.env)
         log = open(self.log_path, 'ab')
+        self._log_offset = self.log_path.stat().st_size if self.log_path.exists() else 0
         self.proc = subprocess.Popen([DOTNET, DLL], cwd=self.dir, env=env, stdout=log, stderr=subprocess.STDOUT)
         deadline = time.time() + timeout
         while time.time() < deadline:
             if self.proc.poll() is not None:
                 raise RuntimeError(f'server exited early: {self.tail()}')
-            if b'Server is listening' in self.log_path.read_bytes():
+            if b'Server is listening' in self.log_path.read_bytes()[self._log_offset:]:
                 return self
             time.sleep(0.3)
         raise TimeoutError(f'server did not start: {self.tail()}')

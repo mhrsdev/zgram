@@ -1,203 +1,58 @@
-# Ferrite Telegram Server (Unofficial)
+# Zerogram — پیام‌رسان مستقل برای سرور داخل ایران
 
-<p align="center">
-  <a href="https://github.com/aykutalparslan/Ferrite/actions/workflows/build.yml"><img src="https://github.com/aykutalparslan/Ferrite/actions/workflows/build.yml/badge.svg?branch=main" alt="Build status"></a>
-  <a href="https://github.com/aykutalparslan/Ferrite/actions/workflows/codeql-analysis.yml"><img src="https://github.com/aykutalparslan/Ferrite/actions/workflows/codeql-analysis.yml/badge.svg?branch=main" alt="CodeQL status"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg" alt="License: AGPL-3.0-or-later"></a>
-  <a href="https://deepwiki.com/aykutalparslan/Telegram-Server"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
-</p>
+<div dir="rtl">
 
-Run real Telegram Android/iOS clients against your own open-source MTProto server.
-Ferrite is a C#/.NET implementation of Telegram's server
-API. It gives protocol researchers and client developers an independent MTProto
-server they can run locally, inspect, and change.
+زیروگرام یک پیام‌رسان متن‌باز، تک‌سرور و سبک است که برای اجرا روی یک سرور داخل ایران ساخته شده است. بدون اینترنت بین‌الملل کار می‌کند: ثبت‌نام، ورود، ارسال و دریافت پیام و اتصال مجدد فقط به سرور خودتان نیاز دارند.
 
-<p align="center">
-  <img src="docs/media/chat-media.png" width="23%" alt="Official Telegram-iOS client exchanging messages and media through Ferrite">
-  <img src="docs/media/group-chat.png" width="23%" alt="Official Telegram-iOS client in a Ferrite basic group">
-  <img src="docs/media/voice-call.png" width="23%" alt="Official Telegram Android client in a Ferrite voice call">
-  <img src="docs/media/video-call.png" width="23%" alt="Official Telegram Android client receiving video through a Ferrite call">
-</p>
+این پروژه از دو بخش متن‌باز ساخته شده است:
 
-<p align="center">
-  <sub>Telegram-iOS 12.0 and Telegram for Android 12.0.1, both at layer 214.
-  Each panel is an uncropped capture from an official client connected to
-  Ferrite.</sub>
-</p>
+| بخش | مبنا | مجوز |
+| --- | --- | --- |
+| سرور | [Ferrite](https://github.com/aykutalparslan/Telegram-Server) (کامیت `02b72d79`) | AGPL-3.0-or-later |
+| کلاینت Android | [Telegram for Android](https://github.com/DrKLO/Telegram) (نسخهٔ 12.10.1، کامیت `62b56a07`) | GPL-2.0-or-later |
 
-Captures: [message exchange](docs/media/message.mp4),
-[voice call](docs/media/voice-call.mp4), and
-[video call](docs/media/video-call.mp4).
+زیروگرام وابسته به شرکت تلگرام نیست و از سوی آن تأیید نشده است. جزئیات منبع و تغییرات در [docs/UPSTREAM.md](docs/UPSTREAM.md) آمده است.
 
-## Quick start: real clients included
+## ایدهٔ اصلی
 
-Want to see what the screenshots show? Use the upstream-app launcher. It checks
-out the pinned official client source, applies Ferrite's
-patch, builds the app, boots an emulator or Simulator, and signs in a disposable
-account for you. It also starts the complete two-node Ferrite stack.
+1. **تاریخچهٔ پیام‌ها روی دستگاه کاربر است**، نه روی سرور. هزینهٔ سرور پایین می‌ماند.
+2. **سرور فقط پیام‌های تحویل‌نشده را موقتاً نگه می‌دارد.** وقتی دستگاه گیرنده پیام را روی حافظهٔ پایدار خودش ذخیره کرد و تأیید (ACK) فرستاد، نسخهٔ سرور حذف می‌شود. اگر تأیید نیامد، پس از ۷ روز (قابل‌تنظیم) حذف می‌شود.
+3. **همه‌چیز فقط با سرور شما حرف می‌زند.** هیچ وابستگی زمان‌اجرایی به گوگل، Firebase، تلگرام اصلی، CDN یا سرور خارجی وجود ندارد (جزئیات و آزمون در [docs/fa/offline.md](docs/fa/offline.md)).
 
-The launcher builds Telegram for Android 12.10.1 and Telegram-iOS 12.9, both at
-layer 229, Ferrite's base layer. The screenshots above were captured with older
-builds at layer 214, which Ferrite still serves.
+## ورود و ثبت‌نام
 
-There is one unavoidable bit of setup: these are the real apps, so you
-need their build tools. Start with Git, Python 3, the .NET 10 SDK selected by
-[`global.json`](global.json), and Docker running Linux containers. The launcher
-downloads the pinned JDK and Bazel itself, verifies both against `PIN`, and
-caches them inside the checkout, so you do not install or locate either one.
+- ثبت‌نام با نام کاربری یکتا، نام نمایشی و ایمیل (ایمیل تأییدنشده است و برای بازیابی استفاده **نمی‌شود**).
+- هنگام ثبت‌نام یک secret تصادفی مخصوص حساب ساخته می‌شود؛ برنامه QR و کلید دستی برای Google Authenticator نشان می‌دهد.
+- حساب پس از تأیید اولین کد ۶ رقمی (دورهٔ ۳۰ ثانیه) فعال می‌شود.
+- ورود بعدی فقط با نام کاربری و کد Authenticator است: بدون رمز ثابت، بدون SMS، بدون حساب گوگل.
+- یک دستگاه فعال برای هر حساب؛ ورود جدید نشست قبلی را باطل می‌کند.
+- ۱۰ کد بازیابی یک‌بارمصرف (فقط هش آن‌ها ذخیره می‌شود). بازیابی، secret و همهٔ نشست‌های قبلی را باطل می‌کند.
 
-Then clone Ferrite:
+## دامنهٔ نسخهٔ اول
 
-```sh
-git clone https://github.com/aykutalparslan/Telegram-Server.git
-cd Telegram-Server
-```
+چت خصوصی متنی، گروه کوچک تا ۵۰ عضو، وضعیت تحویل و حذف محلی پیام‌ها. تماس، کانال، بات، ارسال فایل/رسانه، چت سرّی و ورود با تلفن/SMS در سرور و رابط کلاینت **غیرفعال** هستند.
 
-For two Android clients on macOS or Linux, install the pinned Android SDK 36,
-NDK and API 35 emulator image from the
-[official-client guide](interop/upstream-clients/README.md), then run:
+## رمزنگاری — صادقانه
 
-```sh
-./scripts/ferrite-upstream-apps up --android 2 --ios 0
-```
+ارتباط کلاینت و سرور با پروتکل رمزشدهٔ MTProto 2.0 و کلید عمومی سرور شما (pin شده در برنامه) محافظت می‌شود. **رمزنگاری سرتاسری (E2E) وجود ندارد**: سرور پیام را تا لحظهٔ تحویل می‌بیند و روی دیسک خودش (در صف تحویل‌نشده‌ها) نگه می‌دارد. چت سرّی غیرفعال شده تا ادعای نادرست ایجاد نشود.
 
-On a Mac, you can mix Android and iOS clients instead. That also needs Xcode
-26.3 and its Metal toolchain:
+## شروع سریع
 
-```sh
-./scripts/ferrite-upstream-apps up --android 1 --ios 1
-```
-<img src="docs/media/demo.jpg" alt="Ferrite running together with official Android and iOS apps.">
+- نصب سرور: [docs/fa/install.md](docs/fa/install.md)
+- به‌روزرسانی و بازگشت: [docs/fa/update-rollback.md](docs/fa/update-rollback.md)
+- ساخت و نصب کلاینت Android: [docs/fa/android.md](docs/fa/android.md)
+- ذخیرهٔ پیام و محدودیت‌ها: [docs/fa/message-storage.md](docs/fa/message-storage.md)
+- امنیت: [docs/fa/security.md](docs/fa/security.md)
+- عملیات (پشتیبان‌گیری، پایش، ظرفیت): [docs/fa/operations.md](docs/fa/operations.md)
+- کار بدون اینترنت بین‌الملل و push: [docs/fa/offline.md](docs/fa/offline.md)
+- نتایج واقعی آزمون‌ها: [docs/fa/test-report.md](docs/fa/test-report.md)
 
-Any supported mix works the same way — `--android 1 --ios 2` and
-`--android 2 --ios 2` are the other two combinations tested. Every app
-signs in on its own and ends up with every other app in the run as a contact,
-across both platforms.
+</div>
 
-The first build is not small—the launcher is compiling Telegram, not a demo
-shell. Later runs reuse the source and build outputs. If a toolchain, patch, or
-digest is wrong, the launcher stops before creating anything. When it finishes,
-each app is sitting at its normal chat list, already signed in to Ferrite, and
-the terminal shows `"status": "running"`.
+---
 
-Check the run whenever you like:
-
-```sh
-./scripts/ferrite-upstream-apps status
-```
-
-A healthy result shows both MTProto endpoints (`52222` and `52223`), every
-dependency, and every requested client as ready. Clean up with:
-
-```sh
-./scripts/ferrite-upstream-apps down
-```
-
-The launcher only removes resources recorded in its own run manifest. The
-deployment uses disposable data, fixed loopback ports, and sample credentials,
-so keep it on your machine.
-
-Just want the server? Skip the client toolchains and Docker:
-
-```sh
-dotnet run --project Ferrite
-```
-
-That starts one file-backed node on port `5222`. It does not patch, build, launch,
-or provision a Telegram client. See the
-[installation guide](docs/installation.md) before connecting your own client or
-replacing the public sample server key.
-
-## What works today
-
-- MTProto over TCP and WebSocket, including authorization, sessions, updates,
-  profiles, contacts, and dialogs.
-- One-to-one and group messaging, basic groups, channels and supergroups,
-  scheduled messages, search, reactions, and moderation controls.
-- Photo, document, and media upload/download, plus end-to-end encrypted secret
-  chats.
-- Private voice and video calls, group calls, broadcast playback, and group-call
-  recording.
-- Local filesystem storage for a minimal node, or a two-node development stack
-  backed by Cassandra, Redis, Kafka, MinIO, and Elasticsearch.
-- Reproducible official Telegram Android and iOS inputs, with every published
-  capture tied to exact client and Ferrite revisions in the
-  [demo guide](docs/demo.md).
-
-Emulators do not have a real
-camera, so the video call uses a generated test pattern as its camera source.
-The capture clients add local provisioning and observation controls. Ferrite is independent software and is
-not affiliated with, endorsed by, or connected to Telegram Messenger Inc.
-
-## Implemented API surface
-
-Ferrite classifies all **813 published functions** in its layer-229 base schema.
-Of these, **489** have registered handling, including core request-pipeline
-wrappers, and **324** are explicitly disabled. Internal streaming-prefix
-declarations are excluded from these counts.
-
-The `bots`, `payments`, `stories`, `premium`, `smsjobs` and `fragment` namespaces
-are deliberately disabled and return `403 METHOD_DISABLED`. Coverage describes
-which RPCs have a server implementation, not complete behavioral parity with
-Telegram's production service.
-
-## API layers
-
-Ferrite uses **layer 229** as its base and accepts exactly **150, 214–225, and
-227–229**. Other layer numbers, including 226, are rejected rather than rounded
-to a supported layer.
-
-Requests are upgraded through consecutive published layers before constructor-only
-handler dispatch. RPC results and pushed updates are converted to each recipient's
-negotiated layer. Clients using different supported layers can share a deployment.
-
-The schema catalog supplies the supported set and both conversion routes. See
-[API layer structure](docs/api-layers.md) for schema ownership, semantic converters,
-and the procedure for adding a layer.
-
-## Deployment
-
-The quick start above is a development environment, not a deployment target. For
-anything else, `deploy/` holds the inputs it is built from —
-`Dockerfile.ferrite` for the server image and `coturn/` for the TURN
-configuration relayed calls need. See [docs/deployment.md](docs/deployment.md).
-
-Ferrite loads `default-private.key` and `default-public.key` from its working
-directory and generates a pair there when they are absent. The repository ships
-a *sample* pair under `Ferrite/` so a fresh clone runs immediately, and the build
-copies it into the output directory and the server image — delete both files and
-rebuild before any real deployment.
-
-## Configuration
-
-Everything is configured through `FERRITE_*` environment variables, including the
-addresses of Cassandra, Redis, Kafka, S3-compatible object storage, and
-Elasticsearch, so the same image runs against your own backends. See
-[docs/configuration.md](docs/configuration.md).
-
-## Security
-
-Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
-Please do not open a public issue for a security problem.
-
-## Contributing and releases
-
-Development setup, test expectations and pull-request guidance are in
-[CONTRIBUTING.md](CONTRIBUTING.md). Release-level changes are summarized in
-[RELEASE_NOTES.md](RELEASE_NOTES.md).
-
-## License
-
-Copyright (C) 2022-2026 Aykut Alparslan KOÇ
-
-Ferrite is free software: you may redistribute it and/or modify it under the terms
-of the *GNU Affero General Public License, version 3 or later*. It is distributed
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See [LICENSE](LICENSE) for the full text.
-
-`Ferrite.Transport` contains files derived from ASP.NET Core, used under the MIT
-license; see [Ferrite.Transport/LICENSE.aspnetcore](Ferrite.Transport/LICENSE.aspnetcore).
-
-## Star
-
-If Ferrite is useful for your MTProto research, client development, or self-hosting experiments, consider starring the repository. It helps other developers discover it.
+English summary: Zerogram is a single-node messenger for servers inside Iran, built from the open-source Ferrite
+(MTProto server, AGPL-3.0) and Telegram for Android (GPL-2.0). Accounts use usernames and authenticator (TOTP)
+codes only. Message history lives on users' devices; the server keeps a message only until the recipient's device
+acknowledges it (or 7 days). No end-to-end encryption is claimed. Calls, channels, bots, file transfer and secret
+chats are disabled. See `docs/fa/` (Persian) for installation, operation and the measured test results.

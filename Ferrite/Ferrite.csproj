@@ -16,15 +16,6 @@
     <None Remove="DotNext.Unsafe" />
     <None Remove="Microsoft.AspNetCore.Server.Kestrel" />
     <None Remove="LanguagePacks\" />
-    <None Update="default-private.key">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="default-public.key">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="node.guid">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DotNext" Version="6.3.0" />

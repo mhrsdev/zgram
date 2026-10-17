@@ -32,11 +32,11 @@ public sealed record ZerogramOptions
     public TimeSpan LockoutMax { get; init; } = TimeSpan.FromHours(1);
 
     /// <summary>Hard cap on auth attempts (any outcome) per client IP inside <see cref="IpWindow"/>.</summary>
-    public int MaxAttemptsPerIp { get; init; } = 60;
+    public int MaxAttemptsPerIp { get; init; } = 300;
 
     public TimeSpan IpWindow { get; init; } = TimeSpan.FromMinutes(10);
 
-    public int MaxRegistrationsPerIp { get; init; } = 10;
+    public int MaxRegistrationsPerIp { get; init; } = 30;
     public TimeSpan RegistrationWindow { get; init; } = TimeSpan.FromHours(1);
 
     public int GroupMemberLimit { get; init; } = 50;

@@ -1,0 +1,45 @@
+# Zerogram single-node deployment (2 vCPU / 2-4 GB RAM / SSD target).
+# Usage: cp .env.example .env  &&  ./scripts/install.sh  &&  docker compose up -d
+name: zerogram
+services:
+  zerogram:
+    image: ${ZEROGRAM_IMAGE:-zerogram:local}
+    build:
+      context: ../..
+      dockerfile: deploy/zerogram/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${ZEROGRAM_PORT:-5222}:5222/tcp"
+    environment:
+      FERRITE_PUBLIC_ADDRESS: ${ZEROGRAM_PUBLIC_ADDRESS:?set ZEROGRAM_PUBLIC_ADDRESS in .env}
+      FERRITE_PORT: "5222"
+      ZEROGRAM_MASTER_KEY: ${ZEROGRAM_MASTER_KEY:?run scripts/install.sh to create .env}
+      ZEROGRAM_ISSUER: ${ZEROGRAM_ISSUER:-Zerogram}
+      ZEROGRAM_QUEUE_TTL_HOURS: ${ZEROGRAM_QUEUE_TTL_HOURS:-168}
+      ZEROGRAM_QUEUE_MAX_MESSAGES_PER_USER: ${ZEROGRAM_QUEUE_MAX_MESSAGES_PER_USER:-10000}
+      ZEROGRAM_QUEUE_MAX_BYTES_PER_USER: ${ZEROGRAM_QUEUE_MAX_BYTES_PER_USER:-67108864}
+      ZEROGRAM_QUEUE_MAX_TOTAL_BYTES: ${ZEROGRAM_QUEUE_MAX_TOTAL_BYTES:-4294967296}
+      ZEROGRAM_GROUP_MEMBER_LIMIT: ${ZEROGRAM_GROUP_MEMBER_LIMIT:-50}
+      ZEROGRAM_MAX_REGISTRATIONS_PER_IP: ${ZEROGRAM_MAX_REGISTRATIONS_PER_IP:-30}
+      ZEROGRAM_MAX_ATTEMPTS_PER_IP: ${ZEROGRAM_MAX_ATTEMPTS_PER_IP:-300}
+    volumes:
+      - zerogram-data:/data
+    stop_grace_period: 60s
+    init: true
+    # Resource guard-rails sized for the 2 vCPU / 2-4 GB target. Capacity is not guaranteed; see docs.
+    cpus: ${ZEROGRAM_CPUS:-2.0}
+    mem_limit: ${ZEROGRAM_MEMORY:-3g}
+    pids_limit: 512
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  zerogram-data:

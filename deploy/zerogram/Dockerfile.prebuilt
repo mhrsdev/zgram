@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1
+# Same runtime image, but the server was already published on another machine:
+#   dotnet publish Ferrite/Ferrite.csproj -c Release -p:UseAppHost=false -o deploy/zerogram/publish
+#   docker build -f deploy/zerogram/Dockerfile.prebuilt -t zerogram:local .
+FROM mcr.microsoft.com/dotnet/runtime:10.0.0-noble
+COPY deploy/zerogram/publish /app
+COPY deploy/zerogram/entrypoint.sh /app/entrypoint.sh
+RUN chmod 0555 /app/entrypoint.sh \
+ && mkdir -p /data && chown 1654:1654 /data && chmod 0700 /data
+ENV FERRITE_PORT=5222 \
+    FERRITE_DATA_PATH=/data/state \
+    ZEROGRAM_HEALTH_PORT=8081 \
+    DOTNET_gcServer=0 \
+    DOTNET_TieredPGO=0 \
+    DOTNET_EnableDiagnostics=0
+WORKDIR /data
+USER 1654:1654
+VOLUME ["/data"]
+EXPOSE 5222/tcp
+HEALTHCHECK --interval=30s --timeout=6s --start-period=60s --retries=3 \
+  CMD ["dotnet", "/app/Ferrite.dll", "--healthcheck"]
+STOPSIGNAL SIGTERM
+ENTRYPOINT ["/app/entrypoint.sh"]

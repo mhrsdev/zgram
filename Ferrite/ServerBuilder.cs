@@ -57,6 +57,7 @@ public class ServerBuilder
         foreach (var fingerprint in fingerprints)
         {
             var key = keyProvider.GetKey(fingerprint);
+            WriteConnectLink(options, key?.ExportPublicKey());
             Console.WriteLine(key?.ExportPublicKey());
             Console.WriteLine($"Modulus: {new BigInteger(key?.PublicKeyParameters.Modulus, true, true)}");
             Console.WriteLine($"Exponent: {new BigInteger(key?.PublicKeyParameters.Exponent,true,true)}");
@@ -66,8 +67,38 @@ public class ServerBuilder
         
         return container.Resolve<IFerriteServer>();
     }
+    /// <summary>
+    /// Prints (and stores next to the data) the link users paste into the app. It contains only public
+    /// information: the server address and its public RSA key.
+    /// </summary>
+    private static void WriteConnectLink(FerriteServerOptions options, string? publicKeyPem)
+    {
+        if (string.IsNullOrWhiteSpace(publicKeyPem)) return;
+        string body = string.Concat(publicKeyPem.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Where(l => !l.StartsWith("-----")).Select(l => l.Trim()));
+        string key = body.Replace('+', '-').Replace('/', '_').TrimEnd('=');
+        string host = options.PublicAddress.Contains(':') ? $"[{options.PublicAddress}]" : options.PublicAddress;
+        string link = $"zerogram://{host}:{options.Port}?key={key}";
+        Console.WriteLine($"ZEROGRAM_CONNECT_LINK={link}");
+        try
+        {
+            Directory.CreateDirectory(options.DataPath);
+            File.WriteAllText(Path.Combine(options.DataPath, "connect-link.txt"), link + "\n");
+        }
+        catch (IOException)
+        {
+        }
+    }
+
     internal static IContainer BuildContainer(FerriteServerOptions options)
     {
+        Directory.CreateDirectory(options.DataPath);
+        if (!OperatingSystem.IsWindows())
+        {
+            // Accounts, sealed secrets and queued messages live here: owner-only.
+            File.SetUnixFileMode(options.DataPath,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
         Ferrite.Data.Counters.CounterEpoch.Initialize(options.DataPath);
         var builder = new ContainerBuilder();
         RegisterPrimitives(builder);
@@ -117,6 +148,7 @@ public class ServerBuilder
         builder.RegisterType<ZgQueueStore>().AsSelf().SingleInstance();
         builder.RegisterType<ZgMessageTracker>().As<IMessageTracker>().SingleInstance();
         builder.RegisterType<ZgRetention>().AsSelf().SingleInstance();
+        builder.RegisterType<ZgHealthEndpoint>().AsSelf().SingleInstance();
         builder.RegisterType<ZgRetentionRuntime>().AsSelf().SingleInstance();
     }
 

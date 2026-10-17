@@ -15,6 +15,23 @@ public class Program
 {
     public static async Task Main(String[] args)
     {
+        if (args.Length > 0 && args[0] == "--healthcheck")
+        {
+            // Used by the Docker HEALTHCHECK: exit 0 only when /healthz answers 200.
+            string healthPort = Environment.GetEnvironmentVariable("ZEROGRAM_HEALTH_PORT") ?? "8081";
+            try
+            {
+                using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(4) };
+                var response = await http.GetAsync($"http://127.0.0.1:{healthPort}/healthz");
+                Environment.Exit(response.IsSuccessStatusCode ? 0 : 1);
+            }
+            catch
+            {
+                Environment.Exit(1);
+            }
+            return;
+        }
+
         string publicAddress = Environment.GetEnvironmentVariable(
             "FERRITE_PUBLIC_ADDRESS") ?? "10.0.2.2";
         int port = ReadInt("FERRITE_PORT", 5222);

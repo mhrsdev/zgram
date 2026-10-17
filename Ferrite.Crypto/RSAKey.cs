@@ -44,7 +44,18 @@ public class RSAKey : IRSAKey
         bool exists = File.Exists(privateKeyFile) && File.Exists(publicKeyFile);
         if (!exists)
         {
-            File.WriteAllBytes(privateKeyFile, rsa.ExportRSAPrivateKey());
+            // Zerogram: the private key must never be group/world readable.
+            var options = new FileStreamOptions
+            {
+                Mode = FileMode.Create,
+                Access = FileAccess.Write,
+                UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite,
+            };
+            using (var stream = new FileStream(privateKeyFile, options))
+            {
+                stream.Write(rsa.ExportRSAPrivateKey());
+                stream.Flush(true);
+            }
             File.WriteAllBytes(publicKeyFile, rsa.ExportRSAPublicKey());
         }
         else
