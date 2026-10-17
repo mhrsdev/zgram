@@ -2,121 +2,121 @@
   {
     "test": "account_lifecycle",
     "status": "PASS",
-    "seconds": 15.3,
+    "seconds": 11.9,
     "detail": ""
   },
   {
     "test": "input_validation",
     "status": "PASS",
-    "seconds": 14.4,
+    "seconds": 13.6,
     "detail": ""
   },
   {
     "test": "activation_rules",
     "status": "PASS",
-    "seconds": 14.6,
+    "seconds": 11.1,
     "detail": ""
   },
   {
     "test": "totp_replay_and_lockout",
     "status": "PASS",
-    "seconds": 14.1,
+    "seconds": 12.0,
     "detail": ""
   },
   {
     "test": "lockout_expires",
     "status": "PASS",
-    "seconds": 18.8,
+    "seconds": 20.1,
     "detail": ""
   },
   {
     "test": "unknown_user_indistinguishable",
     "status": "PASS",
-    "seconds": 16.1,
+    "seconds": 14.0,
     "detail": ""
   },
   {
     "test": "recovery",
     "status": "PASS",
-    "seconds": 16.0,
+    "seconds": 10.9,
     "detail": ""
   },
   {
     "test": "secrets_not_stored_in_clear",
     "status": "PASS",
-    "seconds": 14.1,
+    "seconds": 14.9,
     "detail": ""
   },
   {
     "test": "scope_and_phone_login_disabled",
     "status": "PASS",
-    "seconds": 16.0,
+    "seconds": 16.1,
     "detail": ""
   },
   {
     "test": "send_ack_purge_delivery_mark",
     "status": "PASS",
-    "seconds": 15.6,
+    "seconds": 11.6,
     "detail": ""
   },
   {
     "test": "retransmission_idempotent",
     "status": "PASS",
-    "seconds": 29.3,
+    "seconds": 28.4,
     "detail": ""
   },
   {
     "test": "restart_keeps_undelivered",
     "status": "PASS",
-    "seconds": 31.4,
+    "seconds": 34.3,
     "detail": ""
   },
   {
     "test": "ids_never_regress_after_kill9",
     "status": "PASS",
-    "seconds": 26.5,
+    "seconds": 26.4,
     "detail": ""
   },
   {
     "test": "expiry",
     "status": "PASS",
-    "seconds": 23.2,
+    "seconds": 23.9,
     "detail": ""
   },
   {
     "test": "queue_caps",
     "status": "PASS",
-    "seconds": 15.5,
+    "seconds": 16.9,
     "detail": ""
   },
   {
     "test": "group_per_recipient_ack",
     "status": "PASS",
-    "seconds": 15.9,
+    "seconds": 18.7,
     "detail": ""
   },
   {
     "test": "group_size_limit_50",
     "status": "PASS",
-    "seconds": 33.3,
+    "seconds": 33.4,
     "detail": ""
   },
   {
     "test": "logout_relogin",
     "status": "PASS",
-    "seconds": 9.5,
+    "seconds": 10.2,
     "detail": ""
   },
   {
     "test": "no_content_in_logs_or_index",
     "status": "PASS",
-    "seconds": 26.4,
+    "seconds": 29.6,
     "detail": ""
   },
   {
     "test": "policy",
     "status": "PASS",
-    "seconds": 13.6,
+    "seconds": 9.1,
     "detail": ""
   }
 ]
