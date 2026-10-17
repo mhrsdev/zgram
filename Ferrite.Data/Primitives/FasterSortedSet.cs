@@ -18,30 +18,38 @@ public class FasterSortedSet<T> :IAsyncDisposable where T: IComparable<T>
     
     public IReadOnlySet<T> Get()
     {
-        var session = _context.Store.NewSession(new SortedSetFunctions<string, SortedSet<T>, T>(
+        using var session = _context.Store.NewSession(new SortedSetFunctions<string, SortedSet<T>, T>(
             (set, l) =>
             {
                 return set ??= new();
             }));
-        session.Read(_name, out var result);
+        var status = session.Read(_name, out var result);
+        if (status.IsPending)
+        {
+            session.CompletePendingWithOutputs(out var outputs, wait: true);
+            using (outputs)
+            {
+                while (outputs.Next()) result = outputs.Current.Output;
+            }
+        }
         return result ?? new SortedSet<T>();
     }
 
     public async ValueTask Add(T value)
     {
-        var session = _context.Store.NewSession(new SortedSetFunctions<string, SortedSet<T>, T>(
+        using var session = _context.Store.NewSession(new SortedSetFunctions<string, SortedSet<T>, T>(
             (set, l) =>
             {
                 set ??= new();
                 set.Add(l);
                 return set;
             }));
-        session.RMW(_name, value);
+        if (session.RMW(_name, value).IsPending) session.CompletePending(wait: true);
     }
     
     public async ValueTask Remove(T value)
     {
-        var session = _context.Store.NewSession(new SortedSetFunctions<string, SortedSet<T>, T>(
+        using var session = _context.Store.NewSession(new SortedSetFunctions<string, SortedSet<T>, T>(
             (set, l) =>
             {
                 if (set == null)
@@ -51,12 +59,12 @@ public class FasterSortedSet<T> :IAsyncDisposable where T: IComparable<T>
                 set.Remove(value);
                 return set;
             }));
-        session.RMW(_name, value);
+        if (session.RMW(_name, value).IsPending) session.CompletePending(wait: true);
     }
     
     public async ValueTask RemoveEqualOrLess(T value)
     {
-        var session = _context.Store.NewSession(new SortedSetFunctions<string, SortedSet<T>, T>(
+        using var session = _context.Store.NewSession(new SortedSetFunctions<string, SortedSet<T>, T>(
             (set, l) =>
             {
                 if (set == null)
@@ -69,7 +77,7 @@ public class FasterSortedSet<T> :IAsyncDisposable where T: IComparable<T>
                 }
                 return set;
             }));
-        session.RMW(_name, value);
+        if (session.RMW(_name, value).IsPending) session.CompletePending(wait: true);
     }
     class SortedSetFunctions<Key, Value, Input> : FunctionsBase<Key, Value, Input, Value, Empty>
     {

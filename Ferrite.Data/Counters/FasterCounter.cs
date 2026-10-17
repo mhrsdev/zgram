@@ -13,7 +13,6 @@ public class FasterCounter : IAtomicCounter
     private long _inc = 1;
     private bool _disposed = false;
     private readonly long _epoch;
-    private readonly ClientSession<string, long, long, long, Empty, IFunctions<string, long, long, long, Empty>> _session;
     
     /// <param name="epochShifted">issued identifiers are shifted by <see cref="CounterEpoch.Offset"/>;
     /// pass false for values that merely mirror client input (e.g. read markers).</param>
@@ -22,33 +21,54 @@ public class FasterCounter : IAtomicCounter
         _context = context;
         _name = name;
         _epoch = epochShifted ? CounterEpoch.Offset : 0;
-        _session = _context.Store.NewSession(new RMWSimpleFunctions<string, long>(
-            (a, b) => a + b));
-        
+    }
+
+    // Zerogram: a FASTER session registers itself with the store until it is disposed. The original code
+    // kept one per counter object and counter objects are created per request, which leaked sessions
+    // without bound under load. Sessions are now short-lived (one per operation).
+    private long Apply(long input)
+    {
+        using var session = _context.Store.NewSession(new RMWSimpleFunctions<string, long>((a, b) => a + b));
+        long output = 0;
+        var status = session.RMW(ref _name, ref input, ref output);
+        if (status.IsPending)
+        {
+            session.CompletePendingWithOutputs(out var outputs, wait: true);
+            using (outputs)
+            {
+                while (outputs.Next()) output = outputs.Current.Output;
+            }
+        }
+        return output;
     }
     
     public ValueTask<long> Get()
     {
         if (_disposed) throw new ObjectDisposedException(_name);
         long value = 0;
-        _session.Read(ref _name, ref value);
+        using var session = _context.Store.NewSession(new RMWSimpleFunctions<string, long>((a, b) => a + b));
+        var status = session.Read(ref _name, ref value);
+        if (status.IsPending)
+        {
+            session.CompletePendingWithOutputs(out var outputs, wait: true);
+            using (outputs)
+            {
+                while (outputs.Next()) value = outputs.Current.Output;
+            }
+        }
         return ValueTask.FromResult(value + _epoch);
     }
 
-    public async ValueTask<long> IncrementAndGet()
+    public ValueTask<long> IncrementAndGet()
     {
         if (_disposed) throw new ObjectDisposedException(_name);
-        long value = 0;
-        _session.RMW(ref _name, ref _inc, ref value);
-        return value + _epoch;
+        return ValueTask.FromResult(Apply(_inc) + _epoch);
     }
 
-    public async ValueTask<long> IncrementByAndGet(long inc)
+    public ValueTask<long> IncrementByAndGet(long inc)
     {
         if (_disposed) throw new ObjectDisposedException(_name);
-        long value = 0;
-        _session.RMW(ref _name, ref inc, ref value);
-        return value + _epoch;
+        return ValueTask.FromResult(Apply(inc) + _epoch);
     }
 
     public ValueTask<long> IncrementTo(long val)
@@ -89,10 +109,6 @@ public class FasterCounter : IAtomicCounter
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
-        if (_context.IsDurable)
-        {
-            await _session.WaitForCommitAsync();
-        }
         await _context.DisposeAsync();
     }
 }

@@ -40,7 +40,13 @@ class Server:
         env.update(self.env)
         log = open(self.log_path, 'ab')
         self._log_offset = self.log_path.stat().st_size if self.log_path.exists() else 0
-        self.proc = subprocess.Popen([DOTNET, DLL], cwd=self.dir, env=env, stdout=log, stderr=subprocess.STDOUT)
+        cmd = [DOTNET, DLL]
+        trace = os.environ.get('ZG_STRACE')
+        if trace:
+            # Record every connect() the server process tree makes (used by the closed-network test).
+            cmd = ['strace', '-f', '-qq', '-e', 'trace=connect', '-s', '200', '-o', trace + f'.{self.port}.{int(time.time())}'] + cmd
+        self.proc = subprocess.Popen(cmd, cwd=self.dir, env=env, stdout=log, stderr=subprocess.STDOUT,
+                                     start_new_session=bool(trace))
         deadline = time.time() + timeout
         while time.time() < deadline:
             if self.proc.poll() is not None:
@@ -53,16 +59,27 @@ class Server:
     def tail(self, n=2000):
         return self.log_path.read_bytes()[-n:].decode('utf8', 'replace')
 
+    def _server_pids(self):
+        """The dotnet process (a child of strace when tracing)."""
+        if not os.environ.get('ZG_STRACE'):
+            return [self.proc.pid]
+        out = subprocess.run(['pgrep', '-P', str(self.proc.pid)], capture_output=True, text=True).stdout.split()
+        return [int(x) for x in out] or [self.proc.pid]
+
     def stop(self, timeout=60):
         """Graceful stop (SIGTERM), as `docker stop` does."""
         if self.proc and self.proc.poll() is None:
-            self.proc.send_signal(signal.SIGTERM)
+            for pid in self._server_pids():
+                os.kill(pid, signal.SIGTERM)
             self.proc.wait(timeout)
         self.proc = None
 
     def kill9(self):
         if self.proc and self.proc.poll() is None:
-            self.proc.kill()
+            if os.environ.get('ZG_STRACE'):
+                os.killpg(self.proc.pid, signal.SIGKILL)
+            else:
+                self.proc.kill()
             self.proc.wait()
         self.proc = None
 

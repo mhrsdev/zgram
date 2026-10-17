@@ -1,0 +1,20 @@
+{
+  "isolation": {
+    "tcp_1.1.1.1:443": "blocked (OSError: Network is unreachable)",
+    "tcp_149.154.167.51:443 (telegram dc)": "blocked (OSError: Network is unreachable)",
+    "tcp_142.250.185.78:443 (google)": "blocked (OSError: Network is unreachable)",
+    "dns dns.google": "blocked (gaierror)"
+  },
+  "steps": {
+    "register_activate_with_authenticator": "ok",
+    "send_receive_ack": "ok",
+    "send_while_recipient_offline": "ok",
+    "graceful_restart_reconnect_receive": "ok",
+    "kill9_restart_reconnect_receive": "ok"
+  },
+  "server_connect_targets": {
+    "AF_UNIX:/var/run/nscd/socket": 6
+  },
+  "external_connect_attempts": {},
+  "result": "PASS"
+}
