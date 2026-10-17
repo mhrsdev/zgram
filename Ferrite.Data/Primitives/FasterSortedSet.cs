@@ -32,7 +32,10 @@ public class FasterSortedSet<T> :IAsyncDisposable where T: IComparable<T>
                 while (outputs.Next()) result = outputs.Current.Output;
             }
         }
-        return result ?? new SortedSet<T>();
+        if (result is null) return new SortedSet<T>();
+        // Zerogram: the stored set is mutated in place by concurrent requests; hand out a snapshot so callers
+        // can enumerate it safely ("Collection was modified" under load).
+        lock (result) return new SortedSet<T>(result);
     }
 
     public async ValueTask Add(T value)
@@ -41,7 +44,7 @@ public class FasterSortedSet<T> :IAsyncDisposable where T: IComparable<T>
             (set, l) =>
             {
                 set ??= new();
-                set.Add(l);
+                lock (set) set.Add(l);
                 return set;
             }));
         if (session.RMW(_name, value).IsPending) session.CompletePending(wait: true);
@@ -56,7 +59,7 @@ public class FasterSortedSet<T> :IAsyncDisposable where T: IComparable<T>
                 {
                     return null;
                 }
-                set.Remove(value);
+                lock (set) set.Remove(value);
                 return set;
             }));
         if (session.RMW(_name, value).IsPending) session.CompletePending(wait: true);
@@ -71,9 +74,12 @@ public class FasterSortedSet<T> :IAsyncDisposable where T: IComparable<T>
                 {
                     return null;
                 }
-                while (set.Count > 0 && set.Min.CompareTo(l) <= 0)
+                lock (set)
                 {
-                    set.Remove(set.Min);
+                    while (set.Count > 0 && set.Min.CompareTo(l) <= 0)
+                    {
+                        set.Remove(set.Min);
+                    }
                 }
                 return set;
             }));

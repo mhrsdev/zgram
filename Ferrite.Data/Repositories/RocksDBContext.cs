@@ -54,13 +54,13 @@ public class RocksDBContext : IDisposable
     private bool _disposed;
     public RocksDBContext()
     {
-        _db = RocksDb.Open( new DbOptions().SetCreateIfMissing(true), "ferrite", new ColumnFamilies());
+        _db = RocksDb.Open( new DbOptions().SetCreateIfMissing(true).SetDbWriteBufferSize(32UL << 20), "ferrite", new ColumnFamilies());
         _cf = _db.GetDefaultColumnFamily();
         lock (Open) Open.Add(new WeakReference<RocksDBContext>(this));
     }
     public RocksDBContext(string path)
     {
-        _db = RocksDb.Open( new DbOptions().SetCreateIfMissing(true), path, new ColumnFamilies());
+        _db = RocksDb.Open( new DbOptions().SetCreateIfMissing(true).SetDbWriteBufferSize(32UL << 20), path, new ColumnFamilies());
         _cf = _db.GetDefaultColumnFamily();
         lock (Open) Open.Add(new WeakReference<RocksDBContext>(this));
     }

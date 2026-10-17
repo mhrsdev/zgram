@@ -18,21 +18,31 @@ public class FasterContext<TKey, TValue> : IAsyncDisposable
     public FasterContext()
     {
         IsDurable = false;
-        Store = new FasterKV<TKey, TValue>(new FasterKVSettings<TKey, TValue>(null));
+        Store = new FasterKV<TKey, TValue>(Small(new FasterKVSettings<TKey, TValue>(null)));
     }
     public FasterContext(string path)
     {
         IsDurable = true;
-        Store = new FasterKV<TKey, TValue>(new FasterKVSettings<TKey, TValue>(path, deleteDirOnDispose: false)
+        Store = new FasterKV<TKey, TValue>(Small(new FasterKVSettings<TKey, TValue>(path, deleteDirOnDispose: false)
         {
             TryRecoverLatest = true,
             RemoveOutdatedCheckpoints = true,
             CheckpointDir = Path.Combine(path, "checkpoints"),
-        });
+        }));
         _checkpointHybrid = IssueHybridLogCheckpoints();
         _checkpointFull = IssueFullCheckpoints();
     }
     
+    // Zerogram: the FASTER defaults (64 MiB index, 32 MiB pages, 16 GiB log) are sized for big
+    // servers; with ~20 stores they alone cost ~2 GiB on a 2-4 GB node (observed OOM at 500 conns).
+    private static FasterKVSettings<TKey, TValue> Small(FasterKVSettings<TKey, TValue> s)
+    {
+        s.IndexSize = 1L << 22;
+        s.PageSize = 1L << 20;
+        s.MemorySize = 1L << 23;
+        return s;
+    }
+
     private async Task IssueHybridLogCheckpoints()
     {
         while (!_disposed)
