@@ -1,5 +1,5 @@
 {
-  "graceful_restart_healthy_after_s": 7.3,
+  "graceful_restart_healthy_after_s": 6.3,
   "after_docker_restart_messages": [
     "docker-0",
     "docker-1",
@@ -7,7 +7,7 @@
     "docker-3",
     "docker-4"
   ],
-  "kill9_restart_healthy_after_s": 7.3,
+  "kill9_restart_healthy_after_s": 6.3,
   "after_kill9_messages": [
     "docker-2",
     "docker-3",

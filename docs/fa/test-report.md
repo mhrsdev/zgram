@@ -7,16 +7,18 @@
 - مولد بار (Telethon) روی همان میزبان اجرا شد؛ پس تأخیرها و CPU تحت‌تأثیر رقابت منابع هستند.
 - کلاینت اندروید روی دستگاه/شبیه‌ساز **آزموده نشده** (KVM و دستگاه در دسترس نبود). فقط ساخت APK انجام شد.
 
-## ۱. آزمون انتها‑به‑انتها (Telethon، پروتکل واقعی) — ۲۰ از ۲۰ موفق
-account_lifecycle، input_validation، activation_rules، totp_replay_and_lockout، lockout_expires، unknown_user_indistinguishable، recovery، secrets_not_stored_in_clear، scope_and_phone_login_disabled، send_ack_purge_delivery_mark، retransmission_idempotent، restart_keeps_undelivered، ids_never_regress_after_kill9، expiry، queue_caps، group_per_recipient_ack، group_size_limit_50، logout_relogin، no_content_in_logs_or_index، policy.
-گزارش خام: `tools/e2e/results/e2e-report.json`.
+## ۱. آزمون انتها‑به‑انتها (Telethon، پروتکل واقعی) — ۲۳ از ۲۳ موفق
+account_lifecycle، input_validation، activation_rules، totp_replay_and_lockout، lockout_expires، unknown_user_indistinguishable، recovery، secrets_not_stored_in_clear، scope_and_phone_login_disabled، send_ack_purge_delivery_mark، retransmission_idempotent، restart_keeps_undelivered، ids_never_regress_after_kill9، expiry، queue_caps، group_per_recipient_ack، group_size_limit_50، logout_relogin، no_content_in_logs_or_index، policy، و سه آزمون هویت صاحب سرور: owner_disabled_by_default، owner_login_and_group_tokens (اثبات با ۱۲ کلمه، رد کلمات غلط، تکرار چالش، گره‌خوردن به اثرانگشت کلید، پیام اتصال، توکن ۳۲ رقمی گروه، پیوستن، ظرفیت، چرخش، محدودیت نرخ، ذخیره‌نشدن توکن به‌صورت خام)، owner_init_cli (ساخت ۱۲ کلمه، ذخیره‌نشدن کلمات، فایل `owner.key` با `0600`، امتناع از بازنویسی، `--force`).
+گزارش خام: `tools/e2e/results/e2e-report.json`. اجرای آخر پس از افزودن هویت ۱۲‌کلمه‌ای روی همین نسخه انجام شد.
 
 ## ۲. شبکهٔ بسته (فقط loopback) — موفق
 با `unshare -n` فقط رابط loopback وجود داشت؛ ثبت‌نام، فعال‌سازی با authenticator، ارسال/دریافت/ACK، ارسال به گیرندهٔ آفلاین، راه‌اندازی مجدد نرم و `kill -9` همگی کار کردند. ردیابی `connect()` با strace: هیچ اتصال خارجی (۰)؛ فقط سوکت یونیکس nscd. DNS خارجی (مثلاً dns.google) مسدود بود. گزارش: `tools/e2e/results/closed-network.json`.
 محدودیت: این آزمون سمت سرور و کلاینت Telethon است؛ وابستگی‌های خارجی APK اندروید در زمان اجرا آزموده نشده.
 
-## ۳. Docker و ماندگاری — موفق
+## ۳. Docker و ماندگاری — موفق (دوباره روی image نهایی)
 `docker restart` و `docker kill` (SIGKILL): پیام‌های تأییدنشده حفظ شد، پیام‌های ACK‌شده حذف شد (۵ ← ۳ پس از ACK دو پیام)، شناسه‌ها بعد از kill -9 کاهش نیافتند، حالت فایل‌ها `700/600`، کاربر غیرریشه، health check سالم (~۷ ثانیه). گزارش: `tools/e2e/results/docker-persistence.json`.
+
+آزمون `docker_owner.py` (گزارش: `tools/e2e/results/docker-owner.json`): داخل کانتینر `read_only` و بدون capability، `--owner-init` ۱۲ کلمه می‌سازد، اجرای دوم رد می‌شود (کد ۲)، سرور روی همان volume بالا می‌آید، کلید عمومی پورت bootstrap با کلید سرور یکی است، ورود با همان ۱۲ کلمه موفق است، پیام اتصال رمزگشایی می‌شود و ۱۲ کلمه در لاگ‌ها **نیست**.
 
 ## ۴. آزمون بار (۱۰۰ / ۳۰۰ / ۵۰۰ اتصال همزمان)
 داده خام: `tools/load/results/load-100-300-500.txt`. «CPU ۱۰۰٪ = یک vCPU».
@@ -36,7 +38,11 @@ account_lifecycle، input_validation، activation_rules، totp_replay_and_lockou
 - بنابراین: ۱۰۰ اتصال پایدار؛ ۳۰۰ اتصال بدون خطا ولی منابع اندازه‌گیری نشد؛ ۵۰۰ اتصال فقط در اجرای مستقل کوتاه (~۹۰ ثانیه) موفق بود و CPU به سقف ۲ هسته نزدیک شد. **ظرفیت ۵۰۰ اتصال پایدار برای بهره‌برداری طولانی «آماده» اعلام نمی‌شود.**
 - بار آزمون پیام‌های کوتاه با نرخ کم است؛ اتصال‌ها پیوسته‌اند و الگوی واقعی کاربران آزموده نشده.
 
+## ۴ب. الگوریتم‌های سمت برنامه (بدون دستگاه)
+اشتقاق کلید از ۱۲ کلمه (BIP-39 seed ← HMAC)، اعتبارسنجی checksum، و بازکردن پیام اتصال با **همان کد جاوای برنامه** روی JDK اجرا و با پایتون و سرور مقایسه شد: خروجی‌ها یکسان است (مثلاً بردار استاندارد «abandon ×11 about» معتبر و «abandon ×12» رد می‌شود). ساخت APK هم با کلید امضای خودمان موفق بود و manifest بدون `testOnly` و با مجوز نصب برای به‌روزرسانی بررسی شد.
+
 ## ۵. آزموده‌نشده / محدودیت‌های شناخته‌شده
+- **صفحهٔ اول، فرم‌ها، ورود صاحب سرور، راه‌اندازی مجدد برای افزودن سرور، چندسرور، پیوستن با توکن و به‌روزرسانی خودکار روی دستگاه/شبیه‌ساز اجرا نشده‌اند** (فقط کامپایل و ساخت APK شده است). طرح آزمون: [client-test-plan.md](client-test-plan.md). به‌روزرسانی خودکار (دانلود، بررسی امضا، نصب‌کننده) هیچ‌وقت با یک Release واقعی امتحان نشده است.
 - رابط کاربری و رفتار کلاینت اندروید (ورود، QR، ذخیرهٔ تاریخچه محلی، ACK‌ ledger، ماندن تاریخچه پس از ری‌استارت برنامه) روی دستگاه واقعی آزموده نشده؛ طرح آزمون در `docs/fa/client-test-plan.md`.
 - پایداری اتصال پس‌زمینه در اندروید/OEMها و باتری بدون Push آزموده نشده.
 - رمزنگاری سرتاسری (E2E) وجود ندارد؛ ادعا نشده است.
