@@ -2430,6 +2430,9 @@ zg.policy#c7220c7c group_member_limit:int queue_ttl_days:int single_device:Bool 
 zg.ackResult#fdadd943 acked:int = zg.AckResult;
 zg.deliveryMark#097979b8 peer:Peer max_id:int = zg.DeliveryMark;
 zg.deliveryState#e3e0513e marks:Vector<zg.DeliveryMark> = zg.DeliveryState;
+zg.ownerChallenge#487d9d47 server_nonce:bytes salt:bytes iterations:int server_proof:bytes = zg.OwnerChallenge;
+zg.groupToken#1fce1382 chat_id:long title:string token:string members:int date:int = zg.GroupToken;
+zg.ownerInfo#66b6c5a0 server_name:string connect_message:string groups:Vector<zg.GroupToken> = zg.OwnerInfo;
 
 ---functions---
 
@@ -3282,3 +3285,9 @@ zg.recover#6093a2fc username:string recovery_code:string = zg.Registration;
 zg.getPolicy#36d005e7 = zg.Policy;
 zg.ackMessages#84ff4d33 ids:Vector<int> = zg.AckResult;
 zg.getDeliveryState#a65929cc = zg.DeliveryState;
+zg.ownerHello#07bab1d5 client_nonce:bytes = zg.OwnerChallenge;
+zg.ownerLogin#9f36102e client_nonce:bytes server_nonce:bytes client_proof:bytes = auth.Authorization;
+zg.getOwnerInfo#b2801d1e = zg.OwnerInfo;
+zg.getGroupToken#36dbb88a chat_id:long = zg.GroupToken;
+zg.rotateGroupToken#478a1fe1 chat_id:long = zg.GroupToken;
+zg.joinGroup#03c02002 token:string = Updates;

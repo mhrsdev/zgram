@@ -21,6 +21,7 @@ class Server:
             shutil.rmtree(self.dir)
         self.dir.mkdir(parents=True, exist_ok=True)
         self.port = port or free_port()
+        self.bootstrap_port = free_port()
         self.env = dict(env or {})
         self.proc = None
         self.log_path = self.dir / 'server.log'
@@ -36,6 +37,7 @@ class Server:
             'FERRITE_PORT': str(self.port),
             'FERRITE_DATA_PATH': str(self.data),
             'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
+            'ZEROGRAM_BOOTSTRAP_PORT': str(self.bootstrap_port),
         })
         env.update(self.env)
         log = open(self.log_path, 'ab')
@@ -95,3 +97,9 @@ class Server:
         out = subprocess.run(['openssl', 'rsa', '-pubin', '-RSAPublicKey_out'], input=pem.encode(),
                              capture_output=True, check=True).stdout.decode()
         return out
+
+    def public_key_pkcs1_der(self):
+        import base64
+        pem = self.public_key_pkcs1()
+        body = ''.join(l for l in pem.splitlines() if not l.startswith('-----'))
+        return base64.b64decode(body)

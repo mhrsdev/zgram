@@ -80,6 +80,13 @@ public sealed class ZgStore : IDisposable
               scope TEXT NOT NULL, key TEXT NOT NULL, ts INTEGER NOT NULL
             );
             CREATE INDEX IF NOT EXISTS rate_events_lookup ON rate_events(scope, key, ts);
+            CREATE TABLE IF NOT EXISTS group_tokens(
+              chat_id INTEGER PRIMARY KEY,
+              token_hash BLOB NOT NULL UNIQUE,
+              token_sealed BLOB NOT NULL,
+              creator_id INTEGER NOT NULL,
+              created_at INTEGER NOT NULL
+            );
             INSERT OR IGNORE INTO schema_info(key, value) VALUES('version', '1');
             """);
     }

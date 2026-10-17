@@ -41,6 +41,25 @@ public sealed record ZerogramOptions
 
     public int GroupMemberLimit { get; init; } = 50;
 
+    /// <summary>Password of the server owner (>= 12 characters). Owner sign-in is disabled while unset.</summary>
+    public string? OwnerPassword { get; init; }
+
+    /// <summary>Human-readable server name embedded in the connection message.</summary>
+    public string ServerName { get; init; } = "Zerogram";
+
+    /// <summary>Public key bootstrap port (HTTP, key + fingerprint only). 0 disables it.</summary>
+    public int BootstrapPort { get; init; } = 5223;
+    public string BootstrapBind { get; init; } = "0.0.0.0";
+
+    /// <summary>Address clients should use in the connection message when it differs from Ferrite's own.</summary>
+    public string? PublicHost { get; init; }
+    public int PublicPort { get; init; }
+
+    public int OwnerMaxFailuresPerIp { get; init; } = 10;
+    public int OwnerMaxFailuresTotal { get; init; } = 100;
+    public TimeSpan OwnerFailureWindow { get; init; } = TimeSpan.FromMinutes(10);
+    public int GroupTokenMaxFailures { get; init; } = 10;
+
     /// <summary>Undelivered-message queue: expiry, per-recipient and global caps.</summary>
     public TimeSpan QueueTtl { get; init; } = TimeSpan.FromDays(7);
     public int QueueMaxMessagesPerRecipient { get; init; } = 10_000;
@@ -64,6 +83,14 @@ public sealed record ZerogramOptions
             MaxAttemptsPerIp = Int(read("ZEROGRAM_MAX_ATTEMPTS_PER_IP"), o.MaxAttemptsPerIp),
             MaxRegistrationsPerIp = Int(read("ZEROGRAM_MAX_REGISTRATIONS_PER_IP"), o.MaxRegistrationsPerIp),
             GroupMemberLimit = Int(read("ZEROGRAM_GROUP_MEMBER_LIMIT"), o.GroupMemberLimit),
+            OwnerPassword = read("ZEROGRAM_OWNER_PASSWORD") is { Length: > 0 } ownerPassword ? ownerPassword : null,
+            ServerName = read("ZEROGRAM_SERVER_NAME") is { Length: > 0 } serverName ? serverName : o.ServerName,
+            BootstrapPort = int.TryParse(read("ZEROGRAM_BOOTSTRAP_PORT"), out int bp) && bp >= 0
+                ? bp
+                : (int.TryParse(read("FERRITE_PORT"), out int fp) ? fp : 5222) + 1,
+            BootstrapBind = read("ZEROGRAM_BOOTSTRAP_BIND") is { Length: > 0 } bb ? bb : o.BootstrapBind,
+            PublicHost = read("ZEROGRAM_PUBLIC_HOST") is { Length: > 0 } ph ? ph : null,
+            PublicPort = Int(read("ZEROGRAM_PUBLIC_PORT"), 0),
             QueueTtl = read("ZEROGRAM_QUEUE_TTL_SECONDS") is { Length: > 0 } ttlSeconds
                 ? TimeSpan.FromSeconds(Int(ttlSeconds, (int)o.QueueTtl.TotalSeconds))
                 : TimeSpan.FromHours(Int(read("ZEROGRAM_QUEUE_TTL_HOURS"), (int)o.QueueTtl.TotalHours)),

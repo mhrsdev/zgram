@@ -12,6 +12,7 @@ public sealed class SecretVault
     private const int TagSize = 16;
     private readonly byte[] _key;
     private readonly byte[] _hashKey;
+    private readonly byte[] _tokenKey;
 
     public SecretVault(ZerogramOptions options)
     {
@@ -19,7 +20,18 @@ public sealed class SecretVault
         // Separate subkey so recovery-code hashes never share a key with encryption.
         _hashKey = HKDF.DeriveKey(HashAlgorithmName.SHA256, _key, 32,
             info: "zerogram/recovery-code-hash"u8.ToArray());
+        _tokenKey = HKDF.DeriveKey(HashAlgorithmName.SHA256, _key, 32, info: "zerogram/group-token-hash"u8.ToArray());
+        _ownerSaltKey = HKDF.DeriveKey(HashAlgorithmName.SHA256, _key, 32, info: "zerogram/owner-salt"u8.ToArray());
     }
+
+    private readonly byte[] _ownerSaltKey;
+
+    /// <summary>Lookup index for group tokens: the token itself is only stored sealed.</summary>
+    public byte[] HashToken(string normalizedToken) =>
+        HMACSHA256.HashData(_tokenKey, Encoding.UTF8.GetBytes(normalizedToken));
+
+    /// <summary>Stable per-installation salt for the owner-password key derivation.</summary>
+    public byte[] OwnerSalt() => HMACSHA256.HashData(_ownerSaltKey, "salt"u8.ToArray())[..16];
 
     private static byte[] LoadOrCreateKey(ZerogramOptions options)
     {

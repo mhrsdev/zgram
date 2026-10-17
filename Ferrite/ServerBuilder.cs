@@ -145,6 +145,10 @@ public class ServerBuilder
         builder.RegisterType<ZgStore>().AsSelf().SingleInstance();
         builder.RegisterType<SecretVault>().AsSelf().SingleInstance();
         builder.RegisterType<ZgAccountService>().AsSelf().SingleInstance();
+        builder.RegisterType<ZgGroupTokens>().AsSelf().SingleInstance();
+        builder.RegisterType<ZgOwnerService>().AsSelf().SingleInstance();
+        builder.RegisterType<ZgGroupAdmin>().AsSelf().SingleInstance();
+        builder.RegisterType<ZgBootstrapEndpoint>().AsSelf().SingleInstance();
         builder.RegisterType<ZgQueueStore>().AsSelf().SingleInstance();
         builder.RegisterType<ZgMessageTracker>().As<IMessageTracker>().SingleInstance();
         builder.RegisterType<ZgRetention>().AsSelf().SingleInstance();

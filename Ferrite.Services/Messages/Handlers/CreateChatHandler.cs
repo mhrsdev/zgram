@@ -29,7 +29,7 @@ public sealed class CreateChatHandler : MessagesHandlerBase
         ChatRowStore chatRows, InviteStore invites,
         PrivacyEvaluator privacy, MessageStore messages, SendPipeline send,
         UpdateFanout fanout, DialogBuilder dialogs, ChatSettingsStore settings,
-        Zerogram.ZerogramOptions zerogram)
+        Zerogram.ZerogramOptions zerogram, Zerogram.ZgGroupTokens groupTokens)
         : base(unitOfWork, forumTopicsRepository, messagingSettingsRepository, authorizationRepository, channelMessagesRepository, chatParticipantsRepository, chatRepository, messageRepository, userRepository, search, updates, updatesContextFactory, log, upload, photos, counterFactory, ids, chatRows, invites, privacy, messages, send, fanout, dialogs)
     {
         _authorizationRepository = authorizationRepository;
@@ -40,7 +40,10 @@ public sealed class CreateChatHandler : MessagesHandlerBase
 
         _settings = settings;
         _zerogram = zerogram;
+        _groupTokens = groupTokens;
     }
+
+    private readonly Zerogram.ZgGroupTokens _groupTokens;
 
     private readonly Zerogram.ZerogramOptions _zerogram;
 
@@ -290,6 +293,8 @@ public sealed class CreateChatHandler : MessagesHandlerBase
                 .Seq(0)
                 .Build();
 
+            // Zerogram: every group gets its own random join token the moment it exists.
+            _groupTokens.Ensure(chatId, creatorUserId);
             _log.Debug($"👥 CreateChat creator:{creatorUserId} chat:{chatId} " +
                        $"users:{participantIds.Count} missing:{missingInviteeIds.Count}");
             var missingInvitees = new Vector();

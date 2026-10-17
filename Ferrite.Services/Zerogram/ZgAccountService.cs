@@ -32,6 +32,10 @@ public enum ZgStatus
     EmailInvalid,
     CodeInvalid,
     Flood,
+    OwnerDisabled,
+    OwnerInvalid,
+    Forbidden,
+    NotFound,
     Internal,
 }
 
@@ -55,7 +59,7 @@ public sealed class ZgAccountService
     private static readonly HashSet<string> Reserved = new(StringComparer.Ordinal)
     {
         "admin", "administrator", "root", "support", "telegram", "zerogram", "system", "service",
-        "moderator", "security", "official", "notifications",
+        "moderator", "security", "official", "notifications", "owner",
     };
 
     private const string RecoveryAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
@@ -150,6 +154,7 @@ public sealed class ZgAccountService
     {
         string username = NormalizeUsername(usernameRaw);
         long now = Now;
+        if (username == OwnerUsername) { BurnTime(); return ZgResult<ZgActivation>.Fail(ZgStatus.CodeInvalid); }
         if (CheckLimit("ip-auth", ip, _options.MaxAttemptsPerIp, _options.IpWindow, now) is { } wait)
             return ZgResult<ZgActivation>.Flooded(wait);
         _store.RecordEvent("ip-auth", ip, now);
@@ -199,6 +204,8 @@ public sealed class ZgAccountService
     {
         string username = NormalizeUsername(usernameRaw);
         long now = Now;
+        // The owner signs in with the server password only (zg.ownerLogin), never with a TOTP code.
+        if (username == OwnerUsername) { BurnTime(); return ZgResult<TLAuthorization>.Fail(ZgStatus.CodeInvalid); }
         if (CheckLimit("ip-auth", ip, _options.MaxAttemptsPerIp, _options.IpWindow, now) is { } wait)
             return ZgResult<TLAuthorization>.Flooded(wait);
         _store.RecordEvent("ip-auth", ip, now);
@@ -231,6 +238,61 @@ public sealed class ZgAccountService
         }
     }
 
+    // ------------------------------------------------------------------ server owner
+
+    public const string OwnerUsername = "owner";
+    private const string OwnerMarker = "owner@local.invalid";
+
+    public long? OwnerUserId() =>
+        _store.Get(OwnerUsername) is { State: ZgStore.Active, UserId: { } id } a && a.Email == OwnerMarker ? id : null;
+
+    /// <summary>
+    /// Signs the connection in as the reserved owner account (creating it on first use). Callers must have
+    /// verified the owner password already.
+    /// </summary>
+    public async ValueTask<ZgResult<TLAuthorization>> OwnerSignInAsync(long authKeyId)
+    {
+        const string displayName = "Server owner";
+        try
+        {
+            long now = Now;
+            ZgAccount? account = _store.Get(OwnerUsername);
+            if (account is not null && account.Email != OwnerMarker)
+            {
+                _log.Error("zerogram: the username 'owner' is taken by a normal account");
+                return ZgResult<TLAuthorization>.Fail(ZgStatus.Internal);
+            }
+            long userId;
+            if (account?.UserId is { } existing)
+            {
+                userId = existing;
+            }
+            else
+            {
+                // Random sealed secret nobody ever sees: the owner account has no authenticator.
+                byte[] secret = KeyGeneration.GenerateRandomKey(20);
+                if (account is null &&
+                    !_store.TryReserve(OwnerUsername, displayName, OwnerMarker, _vault.Seal(secret, OwnerUsername),
+                        authKeyId, now, now + 120))
+                    return ZgResult<TLAuthorization>.Fail(ZgStatus.Internal);
+                account = _store.Get(OwnerUsername)!;
+                userId = await CreateFerriteUserAsync(account);
+                _store.Activate(OwnerUsername, userId, now, new List<byte[]>());
+            }
+            await EnsureProfileAsync(userId, OwnerUsername, displayName);
+            TLAuthorization? auth = await AuthorizeAsync(authKeyId, userId);
+            if (auth is not { } authorization) return ZgResult<TLAuthorization>.Fail(ZgStatus.Internal);
+            await RevokeDevicesAsync(userId, keepAuthKeyId: authKeyId);
+            _log.Information("zerogram: owner signed in");
+            return ZgResult<TLAuthorization>.Success(authorization);
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "zerogram: owner sign-in failed");
+            return ZgResult<TLAuthorization>.Fail(ZgStatus.Internal);
+        }
+    }
+
     // ------------------------------------------------------------------ recovery
 
     public async ValueTask<ZgResult<ZgRegistration>> RecoverAsync(long authKeyId, string ip, string usernameRaw,
@@ -238,6 +300,7 @@ public sealed class ZgAccountService
     {
         string username = NormalizeUsername(usernameRaw);
         long now = Now;
+        if (username == OwnerUsername) { BurnTime(); return ZgResult<ZgRegistration>.Fail(ZgStatus.CodeInvalid); }
         if (CheckLimit("ip-auth", ip, _options.MaxAttemptsPerIp, _options.IpWindow, now) is { } wait)
             return ZgResult<ZgRegistration>.Flooded(wait);
         _store.RecordEvent("ip-auth", ip, now);

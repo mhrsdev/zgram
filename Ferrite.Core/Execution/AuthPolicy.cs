@@ -14,6 +14,8 @@ internal static class AuthPolicy
         Constructors.baseLayer_Activate,
         Constructors.baseLayer_Login,
         Constructors.baseLayer_Recover,
+        Constructors.baseLayer_OwnerHello,
+        Constructors.baseLayer_OwnerLogin,
         Constructors.baseLayer_GetPolicy,
         Constructors.baseLayer_SendCode,
         LegacyConstructors.ResendCode,

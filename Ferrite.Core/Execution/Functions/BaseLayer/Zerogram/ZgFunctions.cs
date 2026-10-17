@@ -22,6 +22,10 @@ internal static class ZgRpc
             ZgStatus.EmailInvalid => (400, "EMAIL_INVALID"),
             ZgStatus.CodeInvalid => (400, "CODE_INVALID"),
             ZgStatus.Flood => (420, $"FLOOD_WAIT_{floodSeconds}"),
+            ZgStatus.OwnerDisabled => (400, "OWNER_DISABLED"),
+            ZgStatus.OwnerInvalid => (400, "OWNER_INVALID"),
+            ZgStatus.Forbidden => (403, "CHAT_ADMIN_REQUIRED"),
+            ZgStatus.NotFound => (400, "CHAT_ID_INVALID"),
             _ => (500, "INTERNAL"),
         };
         using var error = RpcErrorGenerator.GenerateError(code, Encoding.UTF8.GetBytes(text));
@@ -206,4 +210,138 @@ public sealed class ZgGetDeliveryStateFunc : ITLFunction
         using TLDeliveryState state = DeliveryState.Builder().Marks(marks).Build();
         return RpcResultGenerator.Generate(state, ctx.MessageId);
     }
+}
+
+
+[TLFunction(Constructors.baseLayer_OwnerHello)]
+public sealed class ZgOwnerHelloFunc : ITLFunction
+{
+    private readonly ZgOwnerService _owner;
+    public ZgOwnerHelloFunc(ZgOwnerService owner) => _owner = owner;
+
+    public ValueTask<TLBytes?> Process(TLBytes q, TLExecutionContext ctx)
+    {
+        var request = new OwnerHello(q.AsSpan());
+        var result = _owner.Hello(ctx.CurrentAuthKeyId, ctx.IP, request.ClientNonce.ToArray());
+        if (!result.Ok) return ValueTask.FromResult(ZgRpc.Error(result.Status, result.FloodSeconds, ctx));
+        ZgOwnerChallenge c = result.Value!;
+        using TLOwnerChallenge challenge = OwnerChallenge.Builder()
+            .ServerNonce(c.ServerNonce)
+            .Salt(c.Salt)
+            .Iterations(c.Iterations)
+            .ServerProof(c.ServerProof)
+            .Build();
+        return ValueTask.FromResult<TLBytes?>(RpcResultGenerator.Generate(challenge, ctx.MessageId));
+    }
+}
+
+[TLFunction(Constructors.baseLayer_OwnerLogin)]
+public sealed class ZgOwnerLoginFunc : ITLFunction
+{
+    private readonly ZgOwnerService _owner;
+    public ZgOwnerLoginFunc(ZgOwnerService owner) => _owner = owner;
+
+    public async ValueTask<TLBytes?> Process(TLBytes q, TLExecutionContext ctx)
+    {
+        var request = new OwnerLogin(q.AsSpan());
+        var result = await _owner.LoginAsync(ctx.CurrentAuthKeyId, ctx.IP, request.ClientNonce.ToArray(),
+            request.ServerNonce.ToArray(), request.ClientProof.ToArray());
+        if (!result.Ok) return ZgRpc.Error(result.Status, result.FloodSeconds, ctx);
+        using var authorization = result.Value!;
+        return RpcResultGenerator.Generate(authorization, ctx.MessageId);
+    }
+}
+
+internal static class ZgGroupRpc
+{
+    public static TLBytes Unauthorized(TLExecutionContext ctx)
+    {
+        using var denied = RpcErrorGenerator.GenerateError(401, "AUTH_KEY_UNREGISTERED"u8);
+        return RpcResultGenerator.Generate(denied, ctx.MessageId);
+    }
+
+    public static TLGroupToken Build(ZgGroupInfo g) => GroupToken.Builder()
+        .ChatId(g.ChatId)
+        .Title(Encoding.UTF8.GetBytes(g.Title))
+        .Token(Encoding.UTF8.GetBytes(g.Token))
+        .Members(g.Members)
+        .Date((int)g.Date)
+        .Build();
+}
+
+[TLFunction(Constructors.baseLayer_GetOwnerInfo)]
+public sealed class ZgGetOwnerInfoFunc : ITLFunction
+{
+    private readonly ZgGroupAdmin _admin;
+    private readonly IAuthorizationRepository _authorizations;
+
+    public ZgGetOwnerInfoFunc(ZgGroupAdmin admin, IAuthorizationRepository authorizations)
+    {
+        _admin = admin;
+        _authorizations = authorizations;
+    }
+
+    public async ValueTask<TLBytes?> Process(TLBytes q, TLExecutionContext ctx)
+    {
+        using var auth = await _authorizations.GetAuthorizationAsync(ctx.CurrentAuthKeyId);
+        if (auth is not { } info || !info.AsAuthInfo().LoggedIn) return ZgGroupRpc.Unauthorized(ctx);
+        var result = await _admin.OwnerInfoAsync(info.AsAuthInfo().UserId);
+        if (!result.Ok) return ZgRpc.Error(result.Status, result.FloodSeconds, ctx);
+        var groups = new Vector();
+        foreach (ZgGroupInfo g in result.Value!.Groups)
+        {
+            using TLGroupToken token = ZgGroupRpc.Build(g);
+            groups.AppendTLObject(token.AsSpan());
+        }
+        using TLOwnerInfo owner = OwnerInfo.Builder()
+            .ServerName(Encoding.UTF8.GetBytes(result.Value.ServerName))
+            .ConnectMessage(Encoding.UTF8.GetBytes(result.Value.ConnectMessage))
+            .Groups(groups)
+            .Build();
+        return RpcResultGenerator.Generate(owner, ctx.MessageId);
+    }
+}
+
+public abstract class ZgGroupTokenFuncBase : ITLFunction
+{
+    private readonly ZgGroupAdmin _admin;
+    private readonly IAuthorizationRepository _authorizations;
+    private readonly bool _rotate;
+
+    protected ZgGroupTokenFuncBase(ZgGroupAdmin admin, IAuthorizationRepository authorizations, bool rotate)
+    {
+        _admin = admin;
+        _authorizations = authorizations;
+        _rotate = rotate;
+    }
+
+    protected abstract long ChatId(TLBytes q);
+
+    public async ValueTask<TLBytes?> Process(TLBytes q, TLExecutionContext ctx)
+    {
+        using var auth = await _authorizations.GetAuthorizationAsync(ctx.CurrentAuthKeyId);
+        if (auth is not { } info || !info.AsAuthInfo().LoggedIn) return ZgGroupRpc.Unauthorized(ctx);
+        var result = await _admin.GroupTokenAsync(info.AsAuthInfo().UserId, ChatId(q), _rotate);
+        if (!result.Ok) return ZgRpc.Error(result.Status, result.FloodSeconds, ctx);
+        using TLGroupToken token = ZgGroupRpc.Build(result.Value!);
+        return RpcResultGenerator.Generate(token, ctx.MessageId);
+    }
+}
+
+[TLFunction(Constructors.baseLayer_GetGroupToken)]
+public sealed class ZgGetGroupTokenFunc : ZgGroupTokenFuncBase
+{
+    public ZgGetGroupTokenFunc(ZgGroupAdmin admin, IAuthorizationRepository authorizations)
+        : base(admin, authorizations, rotate: false) { }
+
+    protected override long ChatId(TLBytes q) => new GetGroupToken(q.AsSpan()).ChatId;
+}
+
+[TLFunction(Constructors.baseLayer_RotateGroupToken)]
+public sealed class ZgRotateGroupTokenFunc : ZgGroupTokenFuncBase
+{
+    public ZgRotateGroupTokenFunc(ZgGroupAdmin admin, IAuthorizationRepository authorizations)
+        : base(admin, authorizations, rotate: true) { }
+
+    protected override long ChatId(TLBytes q) => new RotateGroupToken(q.AsSpan()).ChatId;
 }

@@ -149,3 +149,89 @@ class GetDeliveryState(_Req):
     def read_result(reader):
         assert reader.read_int(signed=False) == 0xe3e0513e
         return DeliveryState.from_reader(reader)
+
+
+# ---------------------------------------------------------------- owner / group tokens
+
+class OwnerChallenge:
+    def __init__(self, server_nonce, salt, iterations, server_proof):
+        self.server_nonce, self.salt, self.iterations, self.server_proof = server_nonce, salt, iterations, server_proof
+
+    @classmethod
+    def from_reader(cls, r):
+        return cls(r.tgread_bytes(), r.tgread_bytes(), r.read_int(), r.tgread_bytes())
+
+
+class GroupToken:
+    def __init__(self, chat_id, title, token, members, date):
+        self.chat_id, self.title, self.token, self.members, self.date = chat_id, title, token, members, date
+
+    @classmethod
+    def from_reader(cls, r):
+        return cls(r.read_long(), r.tgread_string(), r.tgread_string(), r.read_int(), r.read_int())
+
+
+class OwnerInfo:
+    def __init__(self, server_name, connect_message, groups):
+        self.server_name, self.connect_message, self.groups = server_name, connect_message, groups
+
+    @classmethod
+    def from_reader(cls, r):
+        name, message = r.tgread_string(), r.tgread_string()
+        assert r.read_int(signed=False) == 0x1cb5c415
+        groups = []
+        for _ in range(r.read_int()):
+            assert r.read_int(signed=False) == 0x1fce1382
+            groups.append(GroupToken.from_reader(r))
+        return cls(name, message, groups)
+
+
+class OwnerHello(_Req):
+    CONSTRUCTOR_ID = 0x07bab1d5
+    def __init__(self, client_nonce): self.client_nonce = client_nonce
+    def _bytes(self): return struct.pack('<I', self.CONSTRUCTOR_ID) + _tlstr(self.client_nonce)
+    @staticmethod
+    def read_result(reader):
+        assert reader.read_int(signed=False) == 0x487d9d47
+        return OwnerChallenge.from_reader(reader)
+
+
+class OwnerLogin(_Req):
+    CONSTRUCTOR_ID = 0x9f36102e
+    def __init__(self, client_nonce, server_nonce, client_proof):
+        self.client_nonce, self.server_nonce, self.client_proof = client_nonce, server_nonce, client_proof
+    def _bytes(self):
+        return struct.pack('<I', self.CONSTRUCTOR_ID) + _tlstr(self.client_nonce) + _tlstr(self.server_nonce) + _tlstr(self.client_proof)
+    @staticmethod
+    def read_result(reader): return reader.tgread_object()
+
+
+class GetOwnerInfo(_Req):
+    CONSTRUCTOR_ID = 0xb2801d1e
+    def _bytes(self): return struct.pack('<I', self.CONSTRUCTOR_ID)
+    @staticmethod
+    def read_result(reader):
+        assert reader.read_int(signed=False) == 0x66b6c5a0
+        return OwnerInfo.from_reader(reader)
+
+
+class GetGroupToken(_Req):
+    CONSTRUCTOR_ID = 0x36dbb88a
+    def __init__(self, chat_id): self.chat_id = chat_id
+    def _bytes(self): return struct.pack('<Iq', self.CONSTRUCTOR_ID, self.chat_id)
+    @staticmethod
+    def read_result(reader):
+        assert reader.read_int(signed=False) == 0x1fce1382
+        return GroupToken.from_reader(reader)
+
+
+class RotateGroupToken(GetGroupToken):
+    CONSTRUCTOR_ID = 0x478a1fe1
+
+
+class JoinGroup(_Req):
+    CONSTRUCTOR_ID = 0x03c02002
+    def __init__(self, token): self.token = token
+    def _bytes(self): return struct.pack('<I', self.CONSTRUCTOR_ID) + _tlstr(self.token)
+    @staticmethod
+    def read_result(reader): return reader.tgread_object()

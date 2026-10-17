@@ -9,7 +9,8 @@ from telethon.errors import RPCError
 from zgtest import zg
 from zgtest.accounts import new_account, code_for, input_peer
 from zgtest.helper import make_client, load_server_key
-from zgtest.server import Server
+from zgtest.server import Server, free_port
+from zgtest import owner as zgowner
 
 RESULTS = []
 BASE_ENV = {'ZEROGRAM_MAX_REGISTRATIONS_PER_IP': '1000', 'ZEROGRAM_MAX_ATTEMPTS_PER_IP': '5000',
@@ -423,7 +424,100 @@ async def t_policy(s):
     await c.disconnect()
 
 
+OWNER_PASSWORD = 'correct-horse-battery-staple'
+
+
+async def t_owner_disabled_by_default(s):
+    c = make_client('127.0.0.1', s.port); await c.connect()
+    await expect_error(c(zg.OwnerHello(os.urandom(16))), 'OWNER_DISABLED')
+    await c.disconnect()
+
+
+async def t_owner_login_and_group_tokens(s):
+    import urllib.request, re
+    key_der = s.public_key_pkcs1_der()
+    fp = zgowner.fingerprint_of_pkcs1(key_der)
+    # --- key bootstrap over HTTP (public information)
+    body = json.loads(urllib.request.urlopen(f'http://127.0.0.1:{s.bootstrap_port}/zg/key', timeout=10).read())
+    import base64
+    assert base64.b64decode(body['key']) == key_der and int(body['fp'], 16) == fp & (2**64 - 1), body
+    # --- password proof: a wrong password never gets past the *client-side* check of the server proof
+    c = make_client('127.0.0.1', s.port); await c.connect()
+    try:
+        await zgowner.owner_login(c, 'a-completely-wrong-password', fp)
+        raise AssertionError('wrong password accepted')
+    except ValueError:
+        pass
+    # a tampered client proof is refused, and a challenge cannot be answered twice
+    await expect_error(zgowner.owner_login(c, OWNER_PASSWORD, fp, tamper_proof=True), 'OWNER_INVALID')
+    cn = os.urandom(16)
+    ch = await c(zg.OwnerHello(cn))
+    k = zgowner.derive_key(OWNER_PASSWORD, ch.salt, ch.iterations)
+    good = zgowner.proof(k, 'zg-owner-cli', cn, ch.server_nonce, fp)
+    auth = await c(zg.OwnerLogin(cn, ch.server_nonce, good))
+    assert auth.user.username == 'owner', auth.user.username
+    await expect_error(c(zg.OwnerLogin(cn, ch.server_nonce, good)), 'OWNER_INVALID')
+    # the proof is bound to the key fingerprint (a server with another key cannot impersonate this one)
+    c2 = make_client('127.0.0.1', s.port); await c2.connect()
+    try:
+        await zgowner.owner_login(c2, OWNER_PASSWORD, fp ^ 1)
+        raise AssertionError('proof accepted for a different key fingerprint')
+    except ValueError:
+        pass
+    # --- owner cannot be reached through the normal account paths
+    await expect_error(c2(zg.Login('owner', '123456')), 'CODE_INVALID')
+    await expect_error(c2(zg.Register('owner', 'Owner', 'o@example.com')), 'USERNAME_INVALID')
+    # --- connection message: opaque text that decrypts to address + key
+    info = await c(zg.GetOwnerInfo())
+    assert info.server_name == 'Test Server' and info.groups == []
+    msg = zgowner.open_connect_message(info.connect_message)
+    assert msg['h'] == '127.0.0.1' and msg['p'] == s.port and base64.b64decode(msg['k']) == key_der, msg
+    assert '127.0.0.1' not in info.connect_message
+    # --- group tokens
+    a = await new_account(s, uname('alice')); b = await new_account(s, uname('bobby'))
+    cc = await new_account(s, uname('carol')); d = await new_account(s, uname('dave1'))
+    ub = types.InputUser(b[2].authorization.user.id, b[2].authorization.user.access_hash)
+    r = await a[0](functions.messages.CreateChatRequest(users=[ub], title='Friends'))
+    chat_id = r.updates.chats[0].id
+    tok = await a[0](zg.GetGroupToken(chat_id))
+    assert re.fullmatch(r'\d{32}', tok.token) and tok.title == 'Friends' and tok.members == 2, tok.__dict__
+    listed = (await c(zg.GetOwnerInfo())).groups
+    assert [g.token for g in listed] == [tok.token], listed
+    await expect_error(b[0](zg.GetGroupToken(chat_id)), 'CHAT_ADMIN_REQUIRED')       # members cannot read it
+    await expect_error(b[0](zg.GetOwnerInfo()), 'CHAT_ADMIN_REQUIRED')               # nor can users see the owner view
+    await expect_error(cc[0](zg.JoinGroup('1' * 32)), 'TOKEN_INVALID')
+    await expect_error(cc[0](zg.JoinGroup('123')), 'TOKEN_INVALID')
+    # the token alone admits (separators are ignored)
+    pretty = '-'.join(tok.token[i:i + 4] for i in range(0, 32, 4))
+    await cc[0](zg.JoinGroup(pretty))
+    assert (await a[0](zg.GetGroupToken(chat_id))).members == 3
+    await expect_error(cc[0](zg.JoinGroup(tok.token)), 'USER_ALREADY_PARTICIPANT')
+    # group limit (3 in this test server)
+    await d[0](zg.JoinGroup(tok.token))
+    assert (await a[0](zg.GetGroupToken(chat_id))).members == 4
+    # rotation: the old token stops working immediately
+    new = await a[0](zg.RotateGroupToken(chat_id))
+    assert new.token != tok.token and re.fullmatch(r'\d{32}', new.token)
+    e = await new_account(s, uname('erin1'))
+    await expect_error(e[0](zg.JoinGroup(tok.token)), 'TOKEN_INVALID')
+    await expect_error(e[0](zg.JoinGroup(new.token)), 'USERS_TOO_MUCH')               # group is full (limit 4)
+    # repeated wrong tokens are rate limited per user
+    f = await new_account(s, uname('frank'))
+    for _ in range(10):
+        try: await f[0](zg.JoinGroup(''.join(random.choice('0123456789') for _ in range(32))))
+        except RPCError: pass
+    await expect_error(f[0](zg.JoinGroup(''.join(random.choice('0123456789') for _ in range(32)))), 'FLOOD_WAIT')
+    # tokens are never stored in the clear
+    raw = (s.data / 'zerogram.db').read_bytes() + b''.join(p.read_bytes() for p in s.data.glob('zerogram.db-wal'))
+    assert new.token.encode() not in raw and tok.token.encode() not in raw
+    for x in (a, b, cc, d, e, f): await x[0].disconnect()
+    await c.disconnect(); await c2.disconnect()
+
+
 # ----------------------------------------------------------------------------- runner
+
+OWNER_ENV = {'ZEROGRAM_OWNER_PASSWORD': OWNER_PASSWORD, 'ZEROGRAM_SERVER_NAME': 'Test Server',
+             'ZEROGRAM_GROUP_MEMBER_LIMIT': '4'}
 
 TESTS = [
     # (name, env overrides, test)
@@ -447,6 +541,8 @@ TESTS = [
     ('logout_relogin', {}, t_logout_keeps_nothing_server_side_but_relogin_works),
     ('no_content_in_logs_or_index', {}, t_no_message_text_in_logs_or_indexes),
     ('policy', {}, t_policy),
+    ('owner_disabled_by_default', {}, t_owner_disabled_by_default),
+    ('owner_login_and_group_tokens', OWNER_ENV, t_owner_login_and_group_tokens),
 ]
 
 
