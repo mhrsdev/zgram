@@ -1,5 +1,5 @@
 # Zerogram Android release. Bump both for every release you publish on GitHub (tag it v<ZG_VERSION_NAME>).
 # ZG_RELEASE must increase every time (it becomes the Android versionCode); ZG_VERSION_NAME is what users and
 # the in-app updater compare.
-ZG_RELEASE=1
-ZG_VERSION_NAME=1.0.0
+ZG_RELEASE=2
+ZG_VERSION_NAME=1.0.1
