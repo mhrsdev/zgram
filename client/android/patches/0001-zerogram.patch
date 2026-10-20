@@ -256,6 +256,523 @@ index aeab02b296c606afad8de4b04c1b5042479da1d2..49a1a1133875419cf9549d292513d2b2
 +-dontobfuscate
 +# Zerogram: TL request/response classes are looked up by constructor id; keep them intact.
 +-keep class org.telegram.zerogram.** { *; }
+diff --git a/TMessagesProj/src/main/assets/zerogram.attheme b/TMessagesProj/src/main/assets/zerogram.attheme
+new file mode 100644
+index 0000000000000000000000000000000000000000..b038465a9161df58a39d7e4c142892480820f5da
+--- /dev/null
++++ b/TMessagesProj/src/main/assets/zerogram.attheme
+@@ -0,0 +1,511 @@
++profile_title=#FFFFFFFF
++avatar_actionBarIconBlue=#FFFFFFFF
++actionBarWhiteSelector=#10FFFFFF
++actionBarDefaultArchivedSelector=#FF1A2240
++actionBarDefaultArchivedIcon=#FFFFFFFF
++actionBarDefaultArchivedTitle=#FFFFFFFF
++actionBarDefaultArchivedSearch=#FFFFFFFF
++chat_unreadMessagesStartText=#DAFFFFFF
++chat_inFileBackgroundSelected=#FF3D5778
++windowBackgroundChecked=#FF4E81AB
++radioBackgroundChecked=#FF6495EF
++dialog_inlineProgressBackground=#FF0D101F
++chat_inSentClockSelected=#FF8DA4D3
++windowBackgroundWhiteBlueIcon=#E079A7FC
++chat_goDownButtonCounterBackground=#FF5187EE
++actionBarActionModeDefault=#FF151B34
++actionBarActionModeDefaultTop=#FF141A31
++actionBarActionModeReaction=#12FFFFFF
++actionBarActionModeReactionText=#FFFFFFFF
++actionBarActionModeReactionDot=#FF1A213F
++statisticChartHintLine=#1AFFFFFF
++chats_menuPhone=#93C0D0DD
++chat_outViaBotNameText=#FF8CB1FF
++chat_botKeyboardButtonText=#FFFFFFFF
++profile_actionPressedBackground=#FF4C7CD4
++key_chat_messagePanelVoiceLock=#FFFFFFFF
++chat_secretChatStatusText=#FF6E7BA2
++switchTrack=#FF586589
++gift_ribbon=#FF41607F
++gift_ribbon_soldout=#FF7E4B41
++chat_attachAudioBackground=#FFF66F6B
++location_sendLocationBackground=#FF688DD7
++actionBarDefaultSubmenuBackground=#FF171E39
++switchTrackBlueThumb=#FF111629
++avatar_nameInMessageViolet=#FF8C98EA
++emptyListPlaceholder=#FF717FA5
++chat_inAudioSelectedProgress=#FFFFFFFF
++chat_inMediaIcon=#FFFFFFFF
++actionBarDefaultArchived=#FF19213E
++chat_messagePanelCancelInlineBot=#64E1EBFF
++voipgroup_topPanelGray=#FF576489
++dialogSearchBackground=#FF18203C
++chat_outAudioSeekbarFill=#FF86ADFB
++chat_botKeyboardButtonBackgroundPressed=#FF3A4C62
++player_time=#FF717FA5
++chat_outFileProgressSelected=#FFFFFFFF
++chat_inFileProgressSelected=#FFFFFFFF
++chat_inAudioPerfomerText=#FF6E7BA2
++statisticChartBackZoomColor=#FF4682EE
++player_button=#FFFFFFFF
++key_sheet_other=#43FFFFFF
++chat_inContactNameText=#FF79A7FC
++chats_menuPhoneCats=#FF7C90A4
++chat_outPreviewLine=#FF9ABBFF
++chat_inViaBotNameText=#FF79A7FC
++chat_outVoiceSeekbar=#E66582C3
++player_actionBarTitle=#FFFFFFFF
++dialogGrayLine=#FF070911
++chat_inFileProgress=#FFFFFFFF
++dialogIcon=#FF8490B1
++chat_emojiPanelEmptyText=#FF717FA5
++chat_emojiPanelBackspace=#FF5D6A91
++chat_replyPanelClose=#6EDCEAFF
++chat_inContactPhoneSelectedText=#FF8DA4D3
++dialogSearchText=#FFFFFFFF
++actionBarTabUnactiveText=#FF808BAD
++chat_outAudioTitleText=#FFFFFFFF
++statisticChartActivePickerChart=#D8526679
++chat_emojiPanelBackground=#FF111629
++groupcreate_hintText=#FF717FA5
++chat_inReplyMediaMessageSelectedText=#FF8DA4D3
++dialogCheckboxSquareUnchecked=#FF546679
++chat_inMediaIconSelected=#FFFFFFFF
++chat_emojiPanelStickerPackSelector=#0ACDEAFF
++chat_unreadMessagesStartArrowIcon=#FF535F81
++avatar_backgroundActionBarBlue=#FF13192F
++dialogTextLink=#FF6495EF
++chat_outReactionButtonText=#FFFFFFFF
++chat_recordTime=#FFFFFFFF
++chat_status=#FF73A0F7
++files_folderIconBackground=#FF5D8FEB
++passport_authorizeBackgroundSelected=#FF4E7AD7
++chat_outReactionButtonBackground=#FFFFFFFF
++switchTrackBlueChecked=#FF80B1FF
++dialogShadowLine=#14000000
++profile_status=#FF73A0F7
++chat_topPanelLine=#FF5E85D4
++chat_inReplyMessageText=#FFFFFFFF
++dialogInputField=#FF717FA5
++chat_attachGalleryBackground=#FF4D7EF5
++chat_outInstantSelected=#FFBED2FA
++actionBarDefaultSubmenuSeparator=#FF141930
++key_graySectionText=#FF717FA5
++picker_disabledButton=#FF576D80
++groupcreate_spanBackground=#FF19213E
++contextProgressInner1=#647582A7
++chat_inContactPhoneText=#FF6E7BA2
++chat_inlineResultIcon=#FF79A7FC
++chat_outBubbleGradientSelectedOverlay=#14FFFFFF
++chats_draft=#D9FC474A
++dialogLineProgress=#FF5E85D4
++chat_outPreviewInstantText=#FF9ABBFF
++chat_inMenuSelected=#A58DA4D3
++avatar_backgroundOrange=#FFF2BC64
++avatar_background2Orange=#FFE58943
++avatar_actionBarSelectorGreen=#FF3D536C
++chat_outLocationIcon=#FFFFFFFF
++chat_inLoaderSelected=#FF6086D2
++location_liveLocationProgress=#FF688DD7
++text_RedBold=#FFEE686F
++chat_outAudioProgress=#FFFFFFFF
++stickers_menu=#FF556286
++player_progress=#FF6495EF
++chat_inReplyLine=#FF79A7FC
++chat_inQuote=#FF79A7FC
++chat_inAudioPerfomerSelectedText=#FF8DA4D3
++bot_loadingIcon=#1EFFFFFF
++gift_ribbon=#FF41607F
++gift_ribbon_soldout=#FF7E4B41
++dialogLineProgressBackground=#FF1B2343
++chat_inReplyNameText=#FF79A7FC
++chat_outAudioPerfomerSelectedText=#FFBED2FA
++actionBarActionModeDefaultIcon=#FFFFFFFF
++text_RedRegular=#FFEE686F
++chat_outAudioSelectedProgress=#FFFFFFFF
++chat_inInstant=#FF79A7FC
++groupcreate_cursor=#FF6495EF
++returnToCallBackground=#FF5D8AE7
++checkboxSquareUnchecked=#FF546679
++dialogCheckboxSquareDisabled=#FF445362
++chat_fieldOverlayText=#FF6495EF
++passport_authorizeBackground=#FF436BBA
++chat_inSentClock=#FF566387
++chats_menuTopShadow=#000C0C0C
++avatar_nameInMessageRed=#FFE88878
++chat_botSwitchToInlineText=#FF79A7FC
++chats_nameMessageArchived=#FF717FA5
++avatar_nameInMessageOrange=#FFE8AB5A
++chat_attachActiveTab=#FF6A9EFF
++chat_replyPanelLine=#5E0B0E1B
++dialogSearchHint=#FF6E7CA3
++chat_inVenueInfoSelectedText=#FF8DA4D3
++switchTrackBlueThumbChecked=#FF4E81AB
++chat_attachUnactiveTab=#FF6D91A6
++windowBackgroundWhiteGreenText=#FF61BD67
++actionBarTabActiveText=#FF6A9EFF
++chat_emojiPanelIcon=#FF5D6A91
++chat_topPanelMessage=#6EDCEAFF
++statisticChartSignatureAlpha=#8BFFFFFF
++chat_emojiPanelTrendingDescription=#FF717FA5
++calls_callReceivedGreenIcon=#FF48DD76
++avatar_backgroundRed=#FFE86C6A
++avatar_background2Red=#FFE14747
++chat_emojiPanelBadgeBackground=#FF538DF5
++chat_inForwardedNameText=#FF79A7FC
++avatar_nameInMessageGreen=#FF7DD071
++chat_outContactNameText=#FFFFFFFF
++chat_inSiteNameText=#FF79A7FC
++chat_linkSelectBackground=#5A628EE3
++avatar_nameInMessageCyan=#FF53CCC6
++chat_inLocationBackground=#FF1C2443
++radioBackground=#9E717FA5
++profile_tabText=#78DCEAFF
++contextProgressOuter1=#FF6898F8
++chat_searchPanelIcons=#FF79A7FC
++chat_inAudioSeekbarSelected=#FF7391AB
++chat_outVenueInfoText=#FF8FABDF
++chat_outContactPhoneText=#FF8FABDF
++chat_inAudioTitleText=#FF79A7FC
++windowBackgroundCheckText=#FFFFFFFF
++chats_secretIcon=#FF71D756
++chat_inFileBackground=#FF19213E
++chat_mediaMenu=#FFFFFFFF
++chat_outViewsSelected=#FFBED2FA
++chat_outInstant=#FF8CB1FF
++chat_emojiPanelShadowLine=#32000000
++profile_tabSelector=#14E6F7FF
++actionBarActionModeDefaultSelector=#19DAF7FF
++chat_outForwardedNameText=#FF8CB1FF
++dialogRoundCheckBox=#FF1A69FF
++chat_emojiPanelTrendingTitle=#FFFFFFFF
++actionBarTabLine=#FF6494FF
++chat_stickersHintPanel=#FF1B2342
++chat_outSiteNameText=#FFFFFFFF
++chat_inVoiceSeekbarSelected=#FF7391AB
++avatar_backgroundArchived=#FF1E274B
++picker_badge=#FF568BF7
++chat_outFileInfoSelectedText=#FFBED2FA
++chats_tabletSelectedOverlay=#0FFFFFFF
++chat_outAudioDurationSelectedText=#FFBED2FA
++undo_background=#F219213E
++premiumGradientBackground3=#FF0B0E1B
++premiumGradientBackground4=#FF0C0F1D
++premiumGradientBackground1=#FF12172C
++premiumGradientBackground2=#FF0B0F1C
++premiumStarGradient1=#FF1456FF
++premiumStarGradient2=#FF7866FA
++dialogTextHint=#FF717FA5
++statisticChartLine_blue=#FF5286FF
++statisticChartLine_indigo=#FF5D5CE2
++statisticChartLine_red=#FFF34C44
++statisticChartLine_lightblue=#FF3C69EC
++statisticChartLine_lightgreen=#FF8FCF39
++statisticChartLine_golden=#FFDEAC1F
++statisticChartLine_green=#FF3DC23F
++statisticChartLine_orange=#FFF28C39
++color_blue=#FF5286FF
++color_purple=#FF5D5CE2
++color_red=#FFF34C44
++color_lightblue=#FF3C69EC
++color_lightgreen=#FF8FCF39
++color_yellow=#FFDEAC1F
++color_green=#FF3DC23F
++color_orange=#FFF28C39
++chat_topPanelTitle=#FF6B96E6
++chat_inAudioCacheSeekbar=#FF4B5676
++chat_outContactIcon=#FFFFFFFF
++chat_inFileInfoText=#FF6E7BA2
++avatar_subtitleInProfileBlue=#FF808BAD
++chat_inPreviewLine=#FF79A7FC
++profile_creatorIcon=#FF6495EF
++profile_actionBackground=#FF618EE1
++statisticChartInactivePickerChart=#C81A2240
++chat_outVoiceSeekbarFill=#FF86ADFB
++chat_outReplyLine=#FF9ABBFF
++chat_inReplyMediaMessageText=#FF6E7BA2
++inappPlayerTitle=#6EDCEAFF
++chat_emojiPanelIconSelected=#FF6495EF
++progressCircle=#FF6497FD
++chat_inContactBackground=#FF6086D2
++chat_botKeyboardButtonBackground=#FF171E38
++chats_menuItemIcon=#FF7380A5
++chat_outVenueInfoSelectedText=#FFBED2FA
++checkboxSquareBackground=#FF6494E5
++chat_mediaSentClock=#B2FFFFFF
++files_folderIcon=#FFFFFFFF
++switchTrackBlue=#FF4D5979
++chat_topPanelClose=#6EDCEAFF
++chats_verifiedBackground=#FF6495EF
++chat_outFileBackgroundSelected=#FF5275BE
++chat_outVoiceSeekbarSelected=#FF7293DC
++windowBackgroundWhiteGrayIcon=#FF717FA5
++profile_verifiedCheck=#FFFFFFFF
++key_chat_messagePanelVoiceLockBackground=#FF1D2546
++chat_outFileNameText=#FFFFFFFF
++picker_enabledButton=#FF6A9EFF
++inappPlayerBackground=#FF13192F
++avatar_nameInMessagePink=#FFE8749A
++statisticChartSignature=#B7A3B1C2
++actionBarDefaultSubmenuItemIcon=#FFFFFFFF
++chat_attachPollBackground=#FFDEB045
++avatar_nameInMessageBlue=#FF5C8DEA
++location_placeLocationBackground=#FF688DD7
++profile_actionIcon=#FFFFFFFF
++windowBackgroundUnchecked=#FF111629
++chats_menuTopShadow=#A40C101E
++chat_outAudioPerfomerText=#FF8FABDF
++sharedMedia_startStopLoadIcon=#FF6495EF
++inappPlayerPlayPause=#FF6495EF
++chat_inVenueInfoText=#FF6E7BA2
++checkboxSquareDisabled=#64445362
++chat_replyPanelIcons=#FF226BF0
++fastScrollInactive=#FF1F284D
++chat_outSentClockSelected=#FFBED2FA
++featuredStickers_addedIcon=#FF6495EF
++chat_goDownButtonCounter=#FFFFFFFF
++switchTrackBlueSelectorChecked=#328CB8FF
++chat_outFileBackground=#FF47709A
++premiumStartSmallStarsColor=#716268FF
++switchTrackBlueSelector=#19B9DDFA
++avatar_backgroundInProfileBlue=#FF5481DD
++chat_inFileNameText=#FFFFFFFF
++inappPlayerPerformer=#FFFFFFFF
++chat_inInstantSelected=#FFA9C0EE
++chat_outFileInfoText=#FF8FABDF
++chat_inLocationIcon=#FFFFFFFF
++chat_outContactPhoneSelectedText=#FFBED2FA
++chat_unreadMessagesStartBackground=#FF161C35
++chat_inLoaderPhoto=#FF151B34
++chat_inFileInfoSelectedText=#FF8DA4D3
++chat_outMenuSelected=#DFBED2FA
++chat_muteIcon=#3CBCD4FF
++chat_selectedBackground=#2A5F88E3
++chat_inAudioDurationText=#FF6E7CA3
++chat_secretTimeText=#FFC7D3EB
++groupcreate_sectionText=#99FFFFFF
++actionBarDefaultSubmenuItem=#FFFFFFFF
++chats_actionMessage=#FF6492E9
++chat_addContact=#FF79A7FC
++avatar_actionBarSelectorBlue=#1EE6F5FF
++switchTrackChecked=#FF618AD7
++windowBackgroundWhiteHintText=#FF717FA5
++chat_inLoader=#FF6086D2
++chat_adminSelectedText=#FF8DA4D3
++groupcreate_spanText=#FFF3F4F7
++player_actionBarSelector=#FF1C2444
++key_player_progressCachedBackground=#FF546982
++statisticChartChevronColor=#FF627099
++chats_menuItemText=#F4FFFFFF
++chat_outReplyNameText=#FF9ABBFF
++chats_menuTopBackgroundCats=#FF141A32
++chat_outReplyMediaMessageText=#FF8FABDF
++chat_textSelectBackground=#5A628EE3
++chat_messagePanelVoiceDelete=#FFFFFFFF
++chat_inAudioProgress=#FFFFFFFF
++chat_inReactionButtonTextSelected=#FFFFFFFF
++actionBarTabSelector=#3736546A
++key_sheet_scrollUp=#25FFFFFF
++player_buttonActive=#FF6495EF
++chat_outContactBackground=#FF688DD7
++sharedMedia_linkPlaceholder=#FF171D37
++chat_inViewsSelected=#FF8DA4D3
++windowBackgroundWhiteLinkSelection=#336497FD
++player_background=#FF12172B
++inappPlayerClose=#6EDCEAFF
++chat_outMediaIcon=#FFFFFFFF
++player_actionBarSubtitle=#78DCEAFF
++chat_outAudioCacheSeekbar=#FF6582C3
++chat_attachContactBackground=#FFDEB045
++chat_inAudioSeekbar=#FF4B5676
++dialogSearchIcon=#FF68769E
++chat_inPreviewInstantText=#FF79A7FC
++chats_archiveBackground=#FF577ECC
++dialog_liveLocationProgress=#FF688DD7
++chat_inViews=#FF6E7BA2
++chat_outLoaderSelected=#FF688DD7
++dialogButtonSelector=#FF1C2546
++chats_archivePinBackground=#FF19213E
++player_actionBarItems=#FFFFFFFF
++chat_sentError=#FFF6574E
++player_progressBackground=#FF1E274A
++chat_inAudioDurationSelectedText=#FF8DA4D3
++chat_outAudioSeekbarSelected=#FF6F8FD6
++dialogRadioBackground=#FF546679
++statisticChartRipple=#2CA4BDD2
++chat_BlurAlpha=#B2000000
++chat_BlurAlphaSlow=#CC000000
++chat_outReplyMessageText=#FFFFFFFF
++chat_recordedVoiceDot=#FFED5D54
++chat_inReactionButtonText=#FFFFFFFF
++chat_inVoiceSeekbarFill=#FF6495EF
++graySection=#FF0C101E
++chat_outAudioSeekbar=#E66582C3
++chats_muteIcon=#FF485270
++chat_inVoiceSeekbar=#FF566387
++chat_outFileProgress=#FFFFFFFF
++profile_verifiedBackground=#FF6497FD
++chat_outLoader=#FF688DD7
++windowBackgroundWhiteGreenText2=#FF61D36B
++chat_replyPanelName=#FF79A7FC
++chat_outMediaIconSelected=#FFFFFFFF
++windowBackgroundWhiteValueText=#E079A7FC
++chat_outAudioDurationText=#FF8FABDF
++chat_outMenu=#FF6D8BCE
++chat_goDownButton=#FF13192F
++statisticChartActiveLine=#32FFFFFF
++chats_secretName=#FF71D756
++chat_inMenu=#7993B1CD
++chat_recordVoiceCancel=#FF739EEE
++chat_outReplyMediaMessageSelectedText=#FFFFFFFF
++chats_attachMessage=#FF717EA4
++chat_topPanelBackground=#FF13192F
++chat_searchPanelText=#FFFFFFFF
++chat_inContactIcon=#FFFFFFFF
++code_comment=#80FFFFFF
++chat_outCodeBackground=#33141D42
++chat_inCodeBackground=#FFFFFFFF
++code_keyword=#FFFF9380
++code_constant=#FFFF9380
++code_function=#FFFF9380
++code_string=#FF88E378
++code_operator=#7FFFFFFF
++code_number=#FF59DED7
++code_comment=#7FFFFFFF
++iv_background=#FF000000
++iv_backgroundGray=#FF0D1120
++iv_navigationBackground=#FF000000
++table_background=#0A92C4FF
++table_border=#19FFFFFF
++dialogCardShadow=#40000000
++dialogTopBackground=#FF325598
++share_icon=#FFFFFFFF
++share_linkText=#B7FFFFFF
++share_linkBackground=#14FFFFFF
++chat_lockIcon=#FFFFFFFF
++stories_circle_closeFriends1=#FFC9EB38
++stories_circle_closeFriends2=#FF09C167
++stories_circle_dialog1=#FF4AED55
++stories_circle_dialog2=#FF4D92FF
++stories_circle1=#FF39DF3C
++stories_circle2=#FF4D8EFF
++chat_msgIvButtonDefaultIn=#FF171E39
++chat_msgIvButtonPrimaryIn=#FF226BF0
++chat_msgIvButtonPrimaryInPressed=#FF4277DB
++chat_msgIvButtonPrimaryInText=#FFFFFFFF
++chat_msgIvButtonPrimaryOut=#FF226BF0
++chat_msgIvButtonPrimaryOutPressed=#FF4277DB
++chat_msgIvButtonPrimaryOutText=#FFFFFFFF
++chat_msgIvButtonDangerInText=#FFFF6D6D
++chat_msgIvButtonSuccessInText=#FF78FF7B
++chat_msgIvButtonDefaultInlineInText=#FF2964CF
++chat_msgIvButtonDefaultInlineIn=#19298ACF
++chat_msgIvButtonDefaultInlineInPressed=#282964CF
++windowBackgroundWhite=#FF070C20
++windowBackgroundGray=#FF040816
++windowBackgroundWhiteBlackText=#FFF2F5FF
++windowBackgroundWhiteGrayText=#FF8A98C0
++windowBackgroundWhiteGrayText2=#FF8A98C0
++windowBackgroundWhiteGrayText3=#FF7683A8
++windowBackgroundWhiteGrayText4=#FF8A98C0
++windowBackgroundWhiteGrayText5=#FF8A98C0
++windowBackgroundWhiteGrayText6=#FF8A98C0
++windowBackgroundWhiteGrayText7=#FF8A98C0
++windowBackgroundWhiteGrayText8=#FF8A98C0
++windowBackgroundWhiteBlueText=#FF6C93FF
++windowBackgroundWhiteBlueText2=#FF6C93FF
++windowBackgroundWhiteBlueText3=#FF6C93FF
++windowBackgroundWhiteBlueText4=#FF7A9CFF
++windowBackgroundWhiteBlueText5=#FF7A9CFF
++windowBackgroundWhiteBlueText6=#FF7A9CFF
++windowBackgroundWhiteBlueText7=#FF7A9CFF
++windowBackgroundWhiteBlueHeader=#FF7A9CFF
++windowBackgroundWhiteLinkText=#FF7FA6FF
++windowBackgroundWhiteInputField=#33FFFFFF
++windowBackgroundWhiteInputFieldActivated=#FF6C93FF
++divider=#1FFFFFFF
++listSelectorSDK21=#1AFFFFFF
++dialogBackground=#FF0C1536
++dialogBackgroundGray=#FF070C20
++dialogTextBlack=#FFF2F5FF
++dialogTextGray=#FF8A98C0
++dialogTextGray2=#FF8A98C0
++dialogTextGray3=#FF8A98C0
++dialogTextGray4=#FF8A98C0
++dialogTextBlue=#FF7A9CFF
++dialogTextBlue2=#FF7A9CFF
++dialogTextBlue4=#FF7A9CFF
++dialogButton=#FF7A9CFF
++dialogScrollGlow=#FF0C1536
++actionBarDefault=#FF070C20
++actionBarDefaultIcon=#FFFFFFFF
++actionBarDefaultTitle=#FFFFFFFF
++actionBarDefaultSubtitle=#B3C6D2FF
++actionBarDefaultSelector=#1AFFFFFF
++actionBarDefaultSearch=#FFFFFFFF
++actionBarDefaultSearchPlaceholder=#99C6D2FF
++chats_name=#FFF2F5FF
++chats_nameMessage=#FF9DB4FF
++chats_nameMessage_threeLines=#FF9DB4FF
++chats_message=#FF8A98C0
++chats_message_threeLines=#FF8A98C0
++chats_date=#FF8A98C0
++chats_unreadCounter=#FF4F7BFF
++chats_unreadCounterText=#FFFFFFFF
++chats_unreadCounterMuted=#FF3A456E
++chats_pinnedIcon=#FF8A98C0
++chats_pinnedOverlay=#14FFFFFF
++chats_actionBackground=#FF5B6BFF
++chats_actionPressedBackground=#FF7A5BFF
++chats_actionIcon=#FFFFFFFF
++chats_sentCheck=#FF7FC8FF
++chats_sentReadCheck=#FF7FC8FF
++chats_sentClock=#FF8A98C0
++chats_menuBackground=#FF0A1030
++chat_wallpaper=#FF060C26
++chat_wallpaper_gradient_to=#FF10286E
++key_chat_wallpaper_gradient_to2=#FF2B1C78
++key_chat_wallpaper_gradient_to3=#FF081437
++chat_inBubble=#33FFFFFF
++chat_inBubbleSelected=#4DFFFFFF
++chat_inBubbleShadow=#00000000
++chat_outBubble=#FF3F67FF
++chat_outBubbleGradient=#FF7B4DFF
++chat_outBubbleGradient2=#FF3F67FF
++chat_outBubbleGradient3=#FF7B4DFF
++chat_outBubbleGradientAnimated=0
++chat_outBubbleSelected=#FF5A78FF
++chat_outBubbleShadow=#00000000
++chat_messageTextIn=#FFF4F7FF
++chat_messageTextOut=#FFFFFFFF
++chat_inTimeText=#99FFFFFF
++chat_outTimeText=#B3FFFFFF
++chat_inTimeSelectedText=#B3FFFFFF
++chat_outTimeSelectedText=#CCFFFFFF
++chat_outSentCheck=#FFA8E4FF
++chat_outSentCheckSelected=#FFA8E4FF
++chat_outSentCheckRead=#FFA8E4FF
++chat_outSentCheckReadSelected=#FFA8E4FF
++chat_outSentClock=#B3FFFFFF
++chat_outViews=#B3FFFFFF
++chat_messageLinkIn=#FF86B0FF
++chat_messageLinkOut=#FFE6ECFF
++chat_serviceBackground=#8010204F
++chat_serviceBackgroundSelected=#A010204F
++chat_serviceText=#FFE8EEFF
++chat_serviceLink=#FFE8EEFF
++chat_serviceIcon=#FFE8EEFF
++chat_messagePanelBackground=#B30A1233
++chat_messagePanelText=#FFFFFFFF
++chat_messagePanelHint=#99A8B8E8
++chat_messagePanelIcons=#FFB8C6F5
++chat_messagePanelSend=#FF6C8CFF
++chat_messagePanelShadow=#00000000
++chat_messagePanelCursor=#FF7A9CFF
++glass_defaultIcon=#FFFFFFFF
++glass_defaultText=#FFFFFFFF
++glass_targetMainTabs=#FF0B1230
++glass_targetMainTopPanel=#FF0B1230
++glass_tabSelected=#FF7A9CFF
++glass_tabSelectedText=#FF7A9CFF
++glass_tabUnselected=#B3FFFFFF
 diff --git a/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java b/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java
 index dc63e5e28b7d17b373b1bfd57d81fc8cb668e8bd..39eb29e3ff8a13ee6fb7d2bd8f9dec96f65dc09d 100644
 --- a/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java
@@ -280,6 +797,26 @@ index dc63e5e28b7d17b373b1bfd57d81fc8cb668e8bd..39eb29e3ff8a13ee6fb7d2bd8f9dec96
          }
          if (enabled) {
              try {
+diff --git a/TMessagesProj/src/main/java/org/telegram/messenger/LiteMode.java b/TMessagesProj/src/main/java/org/telegram/messenger/LiteMode.java
+index 6c37252d4ec051e7209756126e334b2e9424f783..256009ae43410848d7b83fe34deede4cb4bd8167 100644
+--- a/TMessagesProj/src/main/java/org/telegram/messenger/LiteMode.java
++++ b/TMessagesProj/src/main/java/org/telegram/messenger/LiteMode.java
+@@ -67,6 +67,7 @@ public class LiteMode {
+         FLAG_AUTOPLAY_VIDEOS |
+         FLAG_AUTOPLAY_GIFS |
+         FLAG_CHAT_THANOS |
++        FLAG_LIQUID_GLASS | // Zerogram: the glass look is the default
+         FLAG_PARTICLES
+     ); // 204383
+     public static int PRESET_HIGH = (
+@@ -81,6 +82,7 @@ public class LiteMode {
+         FLAG_CALLS_ANIMATIONS |
+         FLAG_AUTOPLAY_VIDEOS |
+         FLAG_AUTOPLAY_GIFS |
++        FLAG_LIQUID_GLASS | // Zerogram: the glass look is the default
+         FLAG_PARTICLES
+     ); // 262143
+     public static int PRESET_POWER_SAVER = 0;
 diff --git a/TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java b/TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java
 index 7a0b35b130be246bb0349ddb47d44416c0f44380..29ac00996926291c3417393ddbe6e21366b9bc1e 100644
 --- a/TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java
@@ -652,6 +1189,71 @@ index f8383aefb22803d445f5a896736d7b26ca0af90d..3332e5b27d492f0e75accb7daa9c044f
              }
              return null;
          }
+diff --git a/TMessagesProj/src/main/java/org/telegram/ui/ActionBar/Theme.java b/TMessagesProj/src/main/java/org/telegram/ui/ActionBar/Theme.java
+index 52790dfd78b7388d78e9df9c638ee3a42efd100b..750406d0ff9c7cfbb7c6653edb838f32a9028b3a 100644
+--- a/TMessagesProj/src/main/java/org/telegram/ui/ActionBar/Theme.java
++++ b/TMessagesProj/src/main/java/org/telegram/ui/ActionBar/Theme.java
+@@ -1646,7 +1646,7 @@ public class Theme {
+             if (isDark != UNKNOWN) {
+                 return isDark == DARK;
+             }
+-            if ("Dark Blue".equals(name) || "Night".equals(name)) {
++            if ("Dark Blue".equals(name) || "Night".equals(name) || "Zerogram".equals(name)) {
+                 isDark = DARK;
+             } else if ("Blue".equals(name) || "Arctic Blue".equals(name) || "Day".equals(name)) {
+                 isDark = LIGHT;
+@@ -2197,6 +2197,7 @@ public class Theme {
+ 
+     public static int DEFALT_THEME_ACCENT_ID = 99;
+     public static int selectedAutoNightType = AUTO_NIGHT_TYPE_NONE;
++    private static ThemeInfo zerogramTheme;
+     public static boolean autoNightScheduleByLocation;
+     public static float autoNightBrighnessThreshold = 0.25f;
+     public static int autoNightDayStartTime = 22 * 60;
+@@ -3938,6 +3939,20 @@ public class Theme {
+         themes.add(themeInfo);
+         themesDict.put("Dark Blue", currentNightTheme = themeInfo);
+ 
++        // Zerogram: the one look of the app (dark navy-violet, glass surfaces, gradient bubbles). See
++        // client/android/theme/make_theme.py for how assets/zerogram.attheme is produced.
++        themeInfo = new ThemeInfo();
++        themeInfo.name = "Zerogram";
++        themeInfo.assetName = "zerogram.attheme";
++        themeInfo.previewBackgroundColor = 0xff0a1636;
++        themeInfo.previewInColor = 0xff26335f;
++        themeInfo.previewOutColor = 0xff5b63ff;
++        themeInfo.sortIndex = 0;
++        themes.add(themeInfo);
++        themesDict.put("Zerogram", themeInfo);
++        zerogramTheme = themeInfo;
++        currentDayTheme = currentNightTheme = themeInfo; // defaultTheme stays "Blue": it is the engine's fallback and has its own colour rules
++
+         themeInfo = new ThemeInfo();
+         themeInfo.name = "Arctic Blue";
+         themeInfo.assetName = "arctic.attheme";
+@@ -4090,6 +4105,13 @@ public class Theme {
+                 }
+             }
+ 
++            if (zerogramTheme != null && !preferences.getBoolean("zg_glass_theme_v1", false)) {
++                // First start of a build with the Zerogram look: use it (users can still pick another theme later).
++                applyingTheme = zerogramTheme;
++                currentNightTheme = zerogramTheme;
++                preferences.edit().putBoolean("zg_glass_theme_v1", true).putString("theme", zerogramTheme.getKey()).putString("nighttheme", zerogramTheme.getKey()).putInt("selectedAutoNightType", AUTO_NIGHT_TYPE_NONE).commit();
++            }
++
+             if (currentNightTheme != null && !themeConfig.contains("lastDarkTheme")) {
+                 SharedPreferences.Editor editor = themeConfig.edit();
+                 editor.putString("lastDarkTheme", currentNightTheme.getKey());
+@@ -4249,7 +4271,7 @@ public class Theme {
+                 oldEditorNew.commit();
+             }
+ 
+-            selectedAutoNightType = preferences.getInt("selectedAutoNightType", Build.VERSION.SDK_INT >= 29 ? AUTO_NIGHT_TYPE_SYSTEM : AUTO_NIGHT_TYPE_NONE);
++            selectedAutoNightType = preferences.getInt("selectedAutoNightType", AUTO_NIGHT_TYPE_NONE); // Zerogram: one look, no day/night switching by default
+             autoNightScheduleByLocation = preferences.getBoolean("autoNightScheduleByLocation", false);
+             autoNightBrighnessThreshold = preferences.getFloat("autoNightBrighnessThreshold", 0.25f);
+             autoNightDayStartTime = preferences.getInt("autoNightDayStartTime", 22 * 60);
 diff --git a/TMessagesProj/src/main/java/org/telegram/ui/Adapters/ContactsAdapter.java b/TMessagesProj/src/main/java/org/telegram/ui/Adapters/ContactsAdapter.java
 index 404491d6d6f8ff4e0622dbe8b053447cfe3c8801..d73be65df3d112d639dca19be8d6bd2ca4fefeba 100644
 --- a/TMessagesProj/src/main/java/org/telegram/ui/Adapters/ContactsAdapter.java
@@ -1744,10 +2346,10 @@ index 0000000000000000000000000000000000000000..a4a98a162fe498e89d4ca69336b8722c
 +}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgAuthActivity.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgAuthActivity.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0938e3d674a18a0889bc4a13617095f7ff647504
+index 0000000000000000000000000000000000000000..a5cdbddf5e53e7e2ac9c75df4f237606d2e11b05
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgAuthActivity.java
-@@ -0,0 +1,530 @@
+@@ -0,0 +1,359 @@
 +package org.telegram.zerogram;
 +
 +import android.content.ClipData;
@@ -1797,7 +2399,7 @@ index 0000000000000000000000000000000000000000..0938e3d674a18a0889bc4a13617095f7
 + * Sign-in / registration / recovery with an authenticator app (TOTP). Replaces the phone-number login:
 + * there is no SMS, fixed password, e-mail verification or Google account anywhere in the flow.
 + */
-+public class ZgAuthActivity extends BaseFragment {
++public class ZgAuthActivity extends ZgPageFragment {
 +
 +    private static final int PAGE_LOGIN = 1;
 +    private static final int PAGE_REGISTER = 2;
@@ -1805,11 +2407,6 @@ index 0000000000000000000000000000000000000000..0938e3d674a18a0889bc4a13617095f7
 +    private static final int PAGE_CODES = 4;
 +    private static final int PAGE_RECOVER = 5;
 +
-+    private FrameLayout root;
-+    private LinearLayout content;
-+    private TextView errorView;
-+    private Button primaryButton;
-+    private boolean busy;
 +    private int page;
 +
 +    // state carried between pages
@@ -1829,21 +2426,8 @@ index 0000000000000000000000000000000000000000..0938e3d674a18a0889bc4a13617095f7
 +    }
 +
 +    @Override
-+    public View createView(Context context) {
-+        actionBar.setAddToContainer(false);
-+        root = new FrameLayout(context);
-+        root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-+        ScrollView scroll = new ScrollView(context);
-+        scroll.setFillViewport(true);
-+        content = new LinearLayout(context);
-+        content.setOrientation(LinearLayout.VERTICAL);
-+        int pad = AndroidUtilities.dp(24);
-+        content.setPadding(pad, AndroidUtilities.dp(48) + AndroidUtilities.statusBarHeight, pad, pad);
-+        scroll.addView(content, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-+        root.addView(scroll, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-+        fragmentView = root;
++    protected void onCreateContent() {
 +        show(PAGE_LOGIN);
-+        return fragmentView;
 +    }
 +
 +    @Override
@@ -1866,8 +2450,7 @@ index 0000000000000000000000000000000000000000..0938e3d674a18a0889bc4a13617095f7
 +
 +    private void show(int newPage) {
 +        page = newPage;
-+        content.removeAllViews();
-+        errorView = null;
++        clear();
 +        switch (newPage) {
 +            case PAGE_REGISTER:
 +                buildRegister();
@@ -1884,109 +2467,6 @@ index 0000000000000000000000000000000000000000..0938e3d674a18a0889bc4a13617095f7
 +            default:
 +                buildLogin();
 +        }
-+    }
-+
-+    private Context ctx() {
-+        return fragmentView.getContext();
-+    }
-+
-+    private TextView title(String text) {
-+        TextView t = new TextView(ctx());
-+        t.setText(text);
-+        t.setTextSize(24);
-+        t.setTypeface(Typeface.DEFAULT_BOLD);
-+        t.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-+        t.setPadding(0, 0, 0, AndroidUtilities.dp(8));
-+        content.addView(t);
-+        return t;
-+    }
-+
-+    private TextView body(String text) {
-+        TextView t = new TextView(ctx());
-+        t.setText(text);
-+        t.setTextSize(15);
-+        t.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
-+        t.setPadding(0, 0, 0, AndroidUtilities.dp(12));
-+        t.setLineSpacing(AndroidUtilities.dp(2), 1f);
-+        content.addView(t);
-+        return t;
-+    }
-+
-+    private EditText field(String hint, int inputType, int maxLength) {
-+        EditText e = new EditText(ctx());
-+        e.setHint(hint);
-+        e.setInputType(inputType);
-+        e.setSingleLine(inputType != (InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE));
-+        e.setTextSize(17);
-+        e.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-+        e.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
-+        if (maxLength > 0) {
-+            e.setFilters(new InputFilter[]{new InputFilter.LengthFilter(maxLength)});
-+        }
-+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-+        lp.topMargin = AndroidUtilities.dp(8);
-+        content.addView(e, lp);
-+        return e;
-+    }
-+
-+    private Button button(String text, Runnable onClick, boolean primary) {
-+        Button b = new Button(ctx());
-+        b.setText(text);
-+        b.setAllCaps(false);
-+        b.setTextSize(16);
-+        if (primary) {
-+            b.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
-+            b.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(8),
-+                    Theme.getColor(Theme.key_featuredStickers_addButton), Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
-+        } else {
-+            b.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
-+            b.setBackgroundColor(Color.TRANSPARENT);
-+        }
-+        b.setOnClickListener(v -> {
-+            if (!busy) {
-+                onClick.run();
-+            }
-+        });
-+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(primary ? 50 : 44));
-+        lp.topMargin = AndroidUtilities.dp(primary ? 20 : 4);
-+        content.addView(b, lp);
-+        if (primary) {
-+            primaryButton = b;
-+        }
-+        return b;
-+    }
-+
-+    private void errorLine() {
-+        errorView = new TextView(ctx());
-+        errorView.setTextColor(Theme.getColor(Theme.key_text_RedRegular));
-+        errorView.setTextSize(14);
-+        errorView.setPadding(0, AndroidUtilities.dp(10), 0, 0);
-+        errorView.setVisibility(View.GONE);
-+        content.addView(errorView);
-+    }
-+
-+    private void showError(String message) {
-+        if (errorView == null) {
-+            return;
-+        }
-+        errorView.setText(message);
-+        errorView.setVisibility(message == null ? View.GONE : View.VISIBLE);
-+    }
-+
-+    private void setBusy(boolean value) {
-+        busy = value;
-+        if (primaryButton != null) {
-+            primaryButton.setEnabled(!value);
-+            primaryButton.setAlpha(value ? 0.5f : 1f);
-+        }
-+    }
-+
-+    private String str(int res) {
-+        return ctx().getString(res);
-+    }
-+
-+    private static String text(EditText e) {
-+        return e == null || e.getText() == null ? "" : e.getText().toString().trim();
 +    }
 +
 +    // ------------------------------------------------------------------ pages
@@ -2190,58 +2670,9 @@ index 0000000000000000000000000000000000000000..0938e3d674a18a0889bc4a13617095f7
 +        ZgSession.openMain(this);
 +    }
 +
-+    private interface Done {
-+        void run(TLObject response);
-+    }
-+
++    /** Account calls run before sign-in, so they are sent without a login. */
 +    private void call(TLObject request, Done done) {
-+        showError(null);
-+        setBusy(true);
-+        ConnectionsManager.getInstance(currentAccount).sendRequest(request, (response, error) ->
-+                AndroidUtilities.runOnUIThread(() -> {
-+                    setBusy(false);
-+                    if (error != null) {
-+                        showError(describe(error));
-+                    } else {
-+                        done.run(response);
-+                    }
-+                }), ConnectionsManager.RequestFlagFailOnServerErrors | ConnectionsManager.RequestFlagWithoutLogin);
-+    }
-+
-+    private String describe(TLRPC.TL_error error) {
-+        String text = error.text == null ? "" : error.text;
-+        if (text.startsWith("FLOOD_WAIT_")) {
-+            int seconds = 60;
-+            try {
-+                seconds = Integer.parseInt(text.substring("FLOOD_WAIT_".length()));
-+            } catch (NumberFormatException ignore) {
-+            }
-+            String when = seconds >= 120 ? (seconds / 60) + " min" : seconds + " s";
-+            return String.format(str(R.string.ZgErrFlood), when);
-+        }
-+        switch (text) {
-+            case "USERNAME_INVALID":
-+                return str(R.string.ZgErrUsernameInvalid);
-+            case "USERNAME_OCCUPIED":
-+                return str(R.string.ZgErrUsernameOccupied);
-+            case "FIRSTNAME_INVALID":
-+                return str(R.string.ZgErrNameInvalid);
-+            case "EMAIL_INVALID":
-+                return str(R.string.ZgErrEmailInvalid);
-+            case "CODE_INVALID":
-+                return str(R.string.ZgErrCodeInvalid);
-+            default:
-+                if (error.code == -1000 || error.code == -2000 || error.code == -3000) {
-+                    return str(R.string.ZgErrNetwork);
-+                }
-+                return String.format(str(R.string.ZgErrGeneric), text.isEmpty() ? String.valueOf(error.code) : text);
-+        }
-+    }
-+
-+    private void copy(String value) {
-+        ClipboardManager clipboard = (ClipboardManager) ctx().getSystemService(Context.CLIPBOARD_SERVICE);
-+        clipboard.setPrimaryClip(ClipData.newPlainText("zerogram", value));
-+        Toast.makeText(ctx(), str(R.string.ZgCopied), Toast.LENGTH_SHORT).show();
++        call(request, true, done);
 +    }
 +
 +    private static String groupKey(String key) {
@@ -2960,10 +3391,10 @@ index 0000000000000000000000000000000000000000..e993f3f5ade6c119b0faf786ebbecca0
 +}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgErrors.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgErrors.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..93b4c5b3e13daf2ee39bb453687a1e3bbd0d0d32
+index 0000000000000000000000000000000000000000..7b6ac9f9801ad817a6675ab8090edec9938d9bdb
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgErrors.java
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,55 @@
 +package org.telegram.zerogram;
 +
 +import android.content.Context;
@@ -2989,6 +3420,16 @@ index 0000000000000000000000000000000000000000..93b4c5b3e13daf2ee39bb453687a1e3b
 +            return String.format(context.getString(R.string.ZgErrFlood), when);
 +        }
 +        switch (text) {
++            case "USERNAME_INVALID":
++                return context.getString(R.string.ZgErrUsernameInvalid);
++            case "USERNAME_OCCUPIED":
++                return context.getString(R.string.ZgErrUsernameOccupied);
++            case "FIRSTNAME_INVALID":
++                return context.getString(R.string.ZgErrNameInvalid);
++            case "EMAIL_INVALID":
++                return context.getString(R.string.ZgErrEmailInvalid);
++            case "CODE_INVALID":
++                return context.getString(R.string.ZgErrCodeInvalid);
 +            case "TOKEN_INVALID":
 +                return context.getString(R.string.ZgErrTokenInvalid);
 +            case "USER_ALREADY_PARTICIPANT":
@@ -3044,6 +3485,134 @@ index 0000000000000000000000000000000000000000..342631887eac2757c5fd33c49f821aea
 +        if (context != null) {
 +            Toast.makeText(context, context.getString(R.string.ZgFeatureDisabled), Toast.LENGTH_SHORT).show();
 +        }
++    }
++}
+diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgGlass.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgGlass.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0bce41db34be5fb6c16827505cd21e06bcf6172e
+--- /dev/null
++++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgGlass.java
+@@ -0,0 +1,122 @@
++package org.telegram.zerogram;
++
++import android.content.res.ColorStateList;
++import android.graphics.Canvas;
++import android.graphics.Color;
++import android.graphics.ColorFilter;
++import android.graphics.LinearGradient;
++import android.graphics.Paint;
++import android.graphics.PixelFormat;
++import android.graphics.RadialGradient;
++import android.graphics.Rect;
++import android.graphics.Shader;
++import android.graphics.drawable.Drawable;
++import android.graphics.drawable.GradientDrawable;
++import android.graphics.drawable.LayerDrawable;
++import android.graphics.drawable.RippleDrawable;
++
++import org.telegram.messenger.AndroidUtilities;
++
++/**
++ * The Zerogram look for the screens this app adds: a deep navy-to-violet background with soft blue and violet
++ * glows, frosted ("glass") panels with a bright top edge and hairline border, and blue-to-violet gradient buttons.
++ * (The chat list, chat and settings get the same palette through the "Zerogram" theme; the system's own liquid
++ * glass bars are switched on in LiteMode.)
++ */
++final class ZgGlass {
++
++    static final int TEXT = 0xFFF2F5FF;
++    static final int TEXT_DIM = 0xFFA9B6DA;
++    static final int HINT = 0x80FFFFFF;
++    static final int LINK = 0xFF9DB4FF;
++    static final int ERROR = 0xFFFF7A8A;
++    static final int BLUE = 0xFF4D7CFF;
++    static final int VIOLET = 0xFF8B5CF6;
++
++    private ZgGlass() {
++    }
++
++    private static int dp(float v) {
++        return AndroidUtilities.dp(v);
++    }
++
++    /** Full-screen background: navy gradient with two soft glows. */
++    static Drawable background() {
++        return new Drawable() {
++            private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
++
++            @Override
++            public void draw(Canvas canvas) {
++                Rect r = getBounds();
++                if (r.isEmpty()) {
++                    return;
++                }
++                paint.setShader(new LinearGradient(r.left, r.top, r.right * 0.6f, r.bottom,
++                        new int[]{0xFF050A1C, 0xFF0A1640, 0xFF140C3A}, new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP));
++                canvas.drawRect(r, paint);
++                glow(canvas, r, r.left + r.width() * 0.15f, r.top + r.height() * 0.10f, r.width() * 0.85f, 0x664D7CFF);
++                glow(canvas, r, r.left + r.width() * 0.95f, r.top + r.height() * 0.90f, r.width() * 0.90f, 0x558B5CF6);
++            }
++
++            private void glow(Canvas canvas, Rect r, float cx, float cy, float radius, int color) {
++                paint.setShader(new RadialGradient(cx, cy, radius, color, color & 0x00FFFFFF, Shader.TileMode.CLAMP));
++                canvas.drawRect(r, paint);
++            }
++
++            @Override
++            public void setAlpha(int alpha) {
++            }
++
++            @Override
++            public void setColorFilter(ColorFilter colorFilter) {
++            }
++
++            @Override
++            public int getOpacity() {
++                return PixelFormat.OPAQUE;
++            }
++        };
++    }
++
++    /** Frosted panel: faint white fill, brighter top edge, hairline border. */
++    static Drawable panel(float radiusDp) {
++        float radius = dp(radiusDp);
++        GradientDrawable fill = new GradientDrawable();
++        fill.setCornerRadius(radius);
++        fill.setColor(0x14FFFFFF);
++        GradientDrawable highlight = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x2BFFFFFF, 0x05FFFFFF, 0x00FFFFFF});
++        highlight.setCornerRadius(radius);
++        GradientDrawable border = new GradientDrawable();
++        border.setCornerRadius(radius);
++        border.setColor(Color.TRANSPARENT);
++        border.setStroke(Math.max(1, dp(1)), 0x33FFFFFF);
++        return new LayerDrawable(new Drawable[]{fill, highlight, border});
++    }
++
++    /** Text-field background: slightly stronger glass with a thin border. */
++    static Drawable field() {
++        GradientDrawable d = new GradientDrawable();
++        d.setCornerRadius(dp(14));
++        d.setColor(0x1FFFFFFF);
++        d.setStroke(Math.max(1, dp(1)), 0x2EFFFFFF);
++        return d;
++    }
++
++    /** Blue-to-violet pill used for primary actions. */
++    static Drawable primaryButton() {
++        GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{BLUE, VIOLET});
++        d.setCornerRadius(dp(16));
++        return new RippleDrawable(ColorStateList.valueOf(0x33FFFFFF), d, null);
++    }
++
++    /** Round gradient badge for the logo and role icons. */
++    static Drawable badge(float radiusDp) {
++        GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{BLUE, VIOLET});
++        d.setCornerRadius(dp(radiusDp));
++        return d;
++    }
++
++    static Drawable transparentRipple() {
++        return new RippleDrawable(ColorStateList.valueOf(0x22FFFFFF), null, new GradientDrawable());
 +    }
 +}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgGroupTokenActivity.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgGroupTokenActivity.java
@@ -3404,7 +3973,7 @@ index 0000000000000000000000000000000000000000..b5dfb3337d3f08b2faac76673f115bcc
 +}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgOwnerPanelActivity.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgOwnerPanelActivity.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a0e0f6b57938ef29d596a2637d85ac95a86ab86c
+index 0000000000000000000000000000000000000000..144c1144378aa5fb577bae088d5dfceffbdb7888
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgOwnerPanelActivity.java
 @@ -0,0 +1,90 @@
@@ -3452,14 +4021,14 @@ index 0000000000000000000000000000000000000000..a0e0f6b57938ef29d596a2637d85ac95
 +        title(str(R.string.ZgOwnerPanelTitle));
 +        body(info.server_name);
 +
-+        body(str(R.string.ZgOwnerMessageTitle)).setTextColor(org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_windowBackgroundWhiteBlackText));
++        body(str(R.string.ZgOwnerMessageTitle)).setTextColor(ZgGlass.TEXT);
 +        body(str(R.string.ZgOwnerMessageHelp));
 +        mono(info.connect_message);
 +        button(str(R.string.ZgCopy), () -> copy(info.connect_message), false);
 +        button(str(R.string.ZgShare), () -> share(info.connect_message), false);
 +
 +        body("").setPadding(0, AndroidUtilities.dp(10), 0, 0);
-+        body(str(R.string.ZgOwnerGroupsTitle)).setTextColor(org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_windowBackgroundWhiteBlackText));
++        body(str(R.string.ZgOwnerGroupsTitle)).setTextColor(ZgGlass.TEXT);
 +        body(str(R.string.ZgOwnerGroupsHelp));
 +        if (info.groups.isEmpty()) {
 +            body(str(R.string.ZgOwnerNoGroups));
@@ -3500,10 +4069,10 @@ index 0000000000000000000000000000000000000000..a0e0f6b57938ef29d596a2637d85ac95
 +}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgPageFragment.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgPageFragment.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..bbb62c8ac9736fd9db8b21a656f0e1a0b87c1a48
+index 0000000000000000000000000000000000000000..fbdb577a085eb44a54965c87137565500778d311
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgPageFragment.java
-@@ -0,0 +1,258 @@
+@@ -0,0 +1,359 @@
 +package org.telegram.zerogram;
 +
 +import android.content.ClipData;
@@ -3511,9 +4080,11 @@ index 0000000000000000000000000000000000000000..bbb62c8ac9736fd9db8b21a656f0e1a0
 +import android.content.Context;
 +import android.content.Intent;
 +import android.graphics.Color;
++import android.graphics.drawable.GradientDrawable;
 +import android.graphics.Typeface;
 +import android.text.InputFilter;
 +import android.text.InputType;
++import android.view.Gravity;
 +import android.view.View;
 +import android.view.ViewGroup;
 +import android.widget.Button;
@@ -3556,18 +4127,112 @@ index 0000000000000000000000000000000000000000..bbb62c8ac9736fd9db8b21a656f0e1a0
 +    public View createView(Context context) {
 +        actionBar.setAddToContainer(false);
 +        root = new FrameLayout(context);
-+        root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
++        root.setBackground(ZgGlass.background());
 +        ScrollView scroll = new ScrollView(context);
 +        scroll.setFillViewport(true);
++        scroll.setVerticalScrollBarEnabled(false);
++        LinearLayout outer = new LinearLayout(context);
++        outer.setOrientation(LinearLayout.VERTICAL);
++        int side = AndroidUtilities.dp(18);
++        outer.setPadding(side, AndroidUtilities.dp(26) + AndroidUtilities.statusBarHeight, side, AndroidUtilities.dp(28));
++        outer.addView(brandHeader(context));
 +        content = new LinearLayout(context);
 +        content.setOrientation(LinearLayout.VERTICAL);
-+        int pad = AndroidUtilities.dp(24);
-+        content.setPadding(pad, AndroidUtilities.dp(48) + AndroidUtilities.statusBarHeight, pad, pad);
-+        scroll.addView(content, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
++        int pad = AndroidUtilities.dp(20);
++        content.setPadding(pad, AndroidUtilities.dp(20), pad, AndroidUtilities.dp(22));
++        content.setBackground(ZgGlass.panel(26));
++        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
++        cardParams.topMargin = AndroidUtilities.dp(20);
++        outer.addView(content, cardParams);
++        scroll.addView(outer, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 +        root.addView(scroll, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 +        fragmentView = root;
 +        onCreateContent();
 +        return fragmentView;
++    }
++
++    /** Logo badge, app name and tagline above the glass card. */
++    private View brandHeader(Context context) {
++        LinearLayout row = new LinearLayout(context);
++        row.setOrientation(LinearLayout.HORIZONTAL);
++        row.setGravity(Gravity.CENTER_VERTICAL);
++        TextView logo = new TextView(context);
++        logo.setText("Z");
++        logo.setGravity(Gravity.CENTER);
++        logo.setTextColor(Color.WHITE);
++        logo.setTextSize(24);
++        logo.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
++        logo.setBackground(ZgGlass.badge(15));
++        row.addView(logo, new LinearLayout.LayoutParams(AndroidUtilities.dp(46), AndroidUtilities.dp(46)));
++        LinearLayout texts = new LinearLayout(context);
++        texts.setOrientation(LinearLayout.VERTICAL);
++        TextView name = new TextView(context);
++        name.setText(context.getString(org.telegram.messenger.R.string.ZgAppName));
++        name.setTextColor(ZgGlass.TEXT);
++        name.setTextSize(22);
++        name.setTypeface(Typeface.DEFAULT_BOLD);
++        texts.addView(name);
++        TextView tagline = new TextView(context);
++        tagline.setText(context.getString(org.telegram.messenger.R.string.ZgTagline));
++        tagline.setTextColor(ZgGlass.TEXT_DIM);
++        tagline.setTextSize(12.5f);
++        texts.addView(tagline);
++        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
++        tp.leftMargin = AndroidUtilities.dp(12);
++        row.addView(texts, tp);
++        return row;
++    }
++
++    /** The big glass choice cards on the welcome page need no extra panel behind them. */
++    protected void plainCard(boolean plain) {
++        content.setBackground(plain ? null : ZgGlass.panel(26));
++        int pad = AndroidUtilities.dp(plain ? 0 : 20);
++        content.setPadding(pad, AndroidUtilities.dp(plain ? 4 : 20), pad, AndroidUtilities.dp(plain ? 4 : 22));
++    }
++
++    /** A large tappable glass card: gradient icon badge, title and a line of explanation. */
++    protected void choiceCard(String icon, String titleText, String hint, Runnable onClick) {
++        LinearLayout card = new LinearLayout(ctx());
++        card.setOrientation(LinearLayout.HORIZONTAL);
++        card.setGravity(Gravity.CENTER_VERTICAL);
++        card.setBackground(ZgGlass.panel(26));
++        int pad = AndroidUtilities.dp(18);
++        card.setPadding(pad, pad, pad, pad);
++        card.setClickable(true);
++        card.setForeground(ZgGlass.transparentRipple());
++        TextView badge = new TextView(ctx());
++        badge.setText(icon);
++        badge.setGravity(Gravity.CENTER);
++        badge.setTextColor(Color.WHITE);
++        badge.setTextSize(22);
++        badge.setBackground(ZgGlass.badge(18));
++        card.addView(badge, new LinearLayout.LayoutParams(AndroidUtilities.dp(54), AndroidUtilities.dp(54)));
++        LinearLayout texts = new LinearLayout(ctx());
++        texts.setOrientation(LinearLayout.VERTICAL);
++        TextView t = new TextView(ctx());
++        t.setText(titleText);
++        t.setTextColor(ZgGlass.TEXT);
++        t.setTextSize(17);
++        t.setTypeface(Typeface.DEFAULT_BOLD);
++        texts.addView(t);
++        TextView h = new TextView(ctx());
++        h.setText(hint);
++        h.setTextColor(ZgGlass.TEXT_DIM);
++        h.setTextSize(13.5f);
++        h.setLineSpacing(AndroidUtilities.dp(2), 1f);
++        h.setPadding(0, AndroidUtilities.dp(4), 0, 0);
++        texts.addView(h);
++        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
++        tp.leftMargin = AndroidUtilities.dp(14);
++        card.addView(texts, tp);
++        card.setOnClickListener(v -> {
++            if (!busy) {
++                onClick.run();
++            }
++        });
++        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
++        lp.topMargin = AndroidUtilities.dp(14);
++        content.addView(card, lp);
 +    }
 +
 +    protected void clear() {
@@ -3593,7 +4258,7 @@ index 0000000000000000000000000000000000000000..bbb62c8ac9736fd9db8b21a656f0e1a0
 +        t.setText(text);
 +        t.setTextSize(24);
 +        t.setTypeface(Typeface.DEFAULT_BOLD);
-+        t.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
++        t.setTextColor(ZgGlass.TEXT);
 +        t.setPadding(0, 0, 0, AndroidUtilities.dp(8));
 +        content.addView(t);
 +        return t;
@@ -3603,7 +4268,7 @@ index 0000000000000000000000000000000000000000..bbb62c8ac9736fd9db8b21a656f0e1a0
 +        TextView t = new TextView(ctx());
 +        t.setText(text);
 +        t.setTextSize(15);
-+        t.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
++        t.setTextColor(ZgGlass.TEXT_DIM);
 +        t.setPadding(0, 0, 0, AndroidUtilities.dp(12));
 +        t.setLineSpacing(AndroidUtilities.dp(2), 1f);
 +        content.addView(t);
@@ -3616,7 +4281,7 @@ index 0000000000000000000000000000000000000000..bbb62c8ac9736fd9db8b21a656f0e1a0
 +        t.setTypeface(Typeface.MONOSPACE);
 +        t.setTextSize(15);
 +        t.setTextIsSelectable(true);
-+        t.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
++        t.setTextColor(ZgGlass.TEXT);
 +        t.setPadding(0, AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4));
 +        content.addView(t);
 +        return t;
@@ -3628,13 +4293,16 @@ index 0000000000000000000000000000000000000000..bbb62c8ac9736fd9db8b21a656f0e1a0
 +        e.setInputType(inputType);
 +        e.setSingleLine(inputType != (InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE));
 +        e.setTextSize(17);
-+        e.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-+        e.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
++        e.setTextColor(ZgGlass.TEXT);
++        e.setHintTextColor(ZgGlass.HINT);
++        e.setBackground(ZgGlass.field());
++        e.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
++        e.setHighlightColor(0x554D7CFF);
 +        if (maxLength > 0) {
 +            e.setFilters(new InputFilter[]{new InputFilter.LengthFilter(maxLength)});
 +        }
 +        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-+        lp.topMargin = AndroidUtilities.dp(8);
++        lp.topMargin = AndroidUtilities.dp(10);
 +        content.addView(e, lp);
 +        return e;
 +    }
@@ -3645,19 +4313,21 @@ index 0000000000000000000000000000000000000000..bbb62c8ac9736fd9db8b21a656f0e1a0
 +        b.setAllCaps(false);
 +        b.setTextSize(16);
 +        if (primary) {
-+            b.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
-+            b.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(8),
-+                    Theme.getColor(Theme.key_featuredStickers_addButton), Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
++            b.setTextColor(Color.WHITE);
++            b.setTypeface(Typeface.DEFAULT_BOLD);
++            b.setStateListAnimator(null);
++            b.setBackground(ZgGlass.primaryButton());
 +        } else {
-+            b.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
-+            b.setBackgroundColor(Color.TRANSPARENT);
++            b.setTextColor(ZgGlass.LINK);
++            b.setStateListAnimator(null);
++            b.setBackground(ZgGlass.transparentRipple());
 +        }
 +        b.setOnClickListener(v -> {
 +            if (!busy) {
 +                onClick.run();
 +            }
 +        });
-+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(primary ? 50 : 44));
++        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(primary ? 52 : 44));
 +        lp.topMargin = AndroidUtilities.dp(primary ? 20 : 4);
 +        content.addView(b, lp);
 +        if (primary) {
@@ -3668,7 +4338,7 @@ index 0000000000000000000000000000000000000000..bbb62c8ac9736fd9db8b21a656f0e1a0
 +
 +    protected void errorLine() {
 +        errorView = new TextView(ctx());
-+        errorView.setTextColor(Theme.getColor(Theme.key_text_RedRegular));
++        errorView.setTextColor(ZgGlass.ERROR);
 +        errorView.setTextSize(14);
 +        errorView.setPadding(0, AndroidUtilities.dp(10), 0, 0);
 +        errorView.setVisibility(View.GONE);
@@ -4497,10 +5167,10 @@ index 0000000000000000000000000000000000000000..1be42b82789491f8eff7f1073b2544fe
 +}
 diff --git a/TMessagesProj/src/main/java/org/telegram/zerogram/ZgWelcomeActivity.java b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgWelcomeActivity.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0dab1be48060e21e7fb2842a2e4dee41c44c16f2
+index 0000000000000000000000000000000000000000..de8769dedc1b804d35d16aaf9e6f1938a9f64d27
 --- /dev/null
 +++ b/TMessagesProj/src/main/java/org/telegram/zerogram/ZgWelcomeActivity.java
-@@ -0,0 +1,234 @@
+@@ -0,0 +1,233 @@
 +package org.telegram.zerogram;
 +
 +import android.text.InputType;
@@ -4561,6 +5231,7 @@ index 0000000000000000000000000000000000000000..0dab1be48060e21e7fb2842a2e4dee41
 +    private void show(int newPage) {
 +        page = newPage;
 +        clear();
++        plainCard(newPage == PAGE_HOME);
 +        switch (newPage) {
 +            case PAGE_USER:
 +                buildUser();
@@ -4576,10 +5247,8 @@ index 0000000000000000000000000000000000000000..0dab1be48060e21e7fb2842a2e4dee41
 +    private void buildHome() {
 +        title(str(R.string.ZgWelcomeTitle));
 +        body(str(R.string.ZgWelcomeSubtitle));
-+        button(str(R.string.ZgRoleUser), () -> show(PAGE_USER), true);
-+        body(str(R.string.ZgRoleUserHint)).setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(10));
-+        button(str(R.string.ZgRoleOwner), () -> show(PAGE_OWNER), true);
-+        body(str(R.string.ZgRoleOwnerHint)).setPadding(0, AndroidUtilities.dp(6), 0, 0);
++        choiceCard("\uD83D\uDC64", str(R.string.ZgRoleUser), str(R.string.ZgRoleUserHint), () -> show(PAGE_USER));
++        choiceCard("\uD83D\uDEE1", str(R.string.ZgRoleOwner), str(R.string.ZgRoleOwnerHint), () -> show(PAGE_OWNER));
 +        if (ZgSession.hasOtherSignedInAccount(currentAccount) || isPresentedOverApp()) {
 +            button(str(R.string.ZgCancelAddServer), this::finishFragment, false);
 +        }
@@ -6791,10 +7460,10 @@ index 0000000000000000000000000000000000000000..942040ed50f7205cafc465496229128b
 +zoo
 diff --git a/TMessagesProj/src/main/res/values-fa/zg_strings.xml b/TMessagesProj/src/main/res/values-fa/zg_strings.xml
 new file mode 100644
-index 0000000000000000000000000000000000000000..473b5f5686e766f98ba1ac04e0189383c1ab4d1b
+index 0000000000000000000000000000000000000000..3693426a66679ea47d34243bb71828d51216318a
 --- /dev/null
 +++ b/TMessagesProj/src/main/res/values-fa/zg_strings.xml
-@@ -0,0 +1,133 @@
+@@ -0,0 +1,134 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<resources>
 +    <string name="ZgAppName">زیروگرام</string>
@@ -6927,6 +7596,7 @@ index 0000000000000000000000000000000000000000..473b5f5686e766f98ba1ac04e0189383
 +    <string name="ZgMenuUpdateAvailable">به‌روزرسانی موجود است</string>
 +    <string name="ZgHintOwnerWords">۱۲ کلمهٔ صاحب سرور (با فاصله از هم جدا)</string>
 +    <string name="ZgOwnerWordsInvalid">۱۲ کلمه معتبر نیست. هر کلمه و املایش را بررسی کنید.</string>
++    <string name="ZgTagline">پیام‌رسان خصوصی روی سرور خودتان</string>
 +</resources>
 diff --git a/TMessagesProj/src/main/res/values/strings.xml b/TMessagesProj/src/main/res/values/strings.xml
 index ffa4d566355f99b5fc6d3051d86fd91884639b36..62b551402be908ec3303aa4d4047dbf0b7956a1d 100644
@@ -6942,10 +7612,10 @@ index ffa4d566355f99b5fc6d3051d86fd91884639b36..62b551402be908ec3303aa4d4047dbf0
      <string name="English">English</string>
 diff --git a/TMessagesProj/src/main/res/values/zg_strings.xml b/TMessagesProj/src/main/res/values/zg_strings.xml
 new file mode 100644
-index 0000000000000000000000000000000000000000..6cffa38c26c2b3ccb48c56407e365922eb72adcb
+index 0000000000000000000000000000000000000000..119b6586843e805a9bf9686ec19d4e973ac55eea
 --- /dev/null
 +++ b/TMessagesProj/src/main/res/values/zg_strings.xml
-@@ -0,0 +1,133 @@
+@@ -0,0 +1,134 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<resources>
 +    <string name="ZgAppName">Zerogram</string>
@@ -7078,6 +7748,7 @@ index 0000000000000000000000000000000000000000..6cffa38c26c2b3ccb48c56407e365922
 +    <string name="ZgMenuUpdateAvailable">Update available</string>
 +    <string name="ZgHintOwnerWords">The 12 owner words (separated by spaces)</string>
 +    <string name="ZgOwnerWordsInvalid">The 12 words are not valid. Check every word and its spelling.</string>
++    <string name="ZgTagline">Private messaging on your own server</string>
 +</resources>
 diff --git a/TMessagesProj_AppStandalone/build.gradle b/TMessagesProj_AppStandalone/build.gradle
 index 96dbbbf027344d6cc2aebed1060c5e86b7962b6e..357cf4f1c2a856b33b574dfda2b83eadd6147675 100644
